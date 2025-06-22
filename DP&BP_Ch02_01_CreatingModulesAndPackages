@@ -134,10 +134,13 @@ rate(100.0, 4.5)                                # function from package PCM_SICP
 # using Dates
 
 # ╔═╡ ab1e5957-fb32-4901-9f4d-2fee8e3b258a
-myDateNow
+myDateNow                                       # old cached date
 
 # ╔═╡ aebd5712-e5a0-4419-9b73-9b4aae653850
-PCM_SICP_JP.myDateNow
+PCM_SICP_JP.myDateNow                           # old cached date
+
+# ╔═╡ f4dd3b99-0e79-4408-b5d6-653b0991aa8b
+PCM_SICP_JP.Dates.now()                         # actual noncached date
 
 # ╔═╡ 857629f6-8f81-4ed2-bfdc-b2946ca97602
 md"
@@ -185,6 +188,7 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╠═fc4ebdd5-a40c-4e6e-bcef-cde3154977cc
 # ╠═ab1e5957-fb32-4901-9f4d-2fee8e3b258a
 # ╠═aebd5712-e5a0-4419-9b73-9b4aae653850
+# ╠═f4dd3b99-0e79-4408-b5d6-653b0991aa8b
 # ╟─857629f6-8f81-4ed2-bfdc-b2946ca97602
 # ╟─be0f0fef-56f9-4463-9814-f8a07a4b437e
 # ╟─8b51e7d3-b21c-4b71-9dd4-8a6035e64741
