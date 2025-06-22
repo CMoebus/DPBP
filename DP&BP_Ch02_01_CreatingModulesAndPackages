@@ -1,0 +1,190 @@
+### A Pluto.jl notebook ###
+# v0.20.4
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 269b9c8a-ac89-47ed-827f-27a0e21180a2
+using Pkg
+
+# ╔═╡ 608bf625-08ff-4f85-a0e3-b02bbfe9dece
+Pkg.activate(".")         # activate the first project found on LOAD_PATH
+
+# ╔═╡ 60180cc9-8de0-414e-a9c7-1933837b2e6e
+Pkg.develop(path="C:/Users/claus/.julia/dev/PCM_SICP_JP")
+
+# ╔═╡ 7941fade-9694-450d-b127-66a96742959a
+push!(LOAD_PATH, "C:/Users/claus/.julia/dev")
+
+# ╔═╡ 587eaaf9-3886-41c3-8ff5-494d39f4368d
+LOAD_PATH
+
+# ╔═╡ 152d9e34-5af7-46b8-9ba9-6837055c8a13
+LOAD_PATH
+
+# ╔═╡ 239ad810-be81-4572-9e7f-aede862376f4
+using Revise                  # this must come before the package under development
+
+# ╔═╡ 103d7336-a148-48ca-b5b7-17e842b7be4b
+using PCM_SICP_JP   # my private library under "C:\users\claus\.julia\dev\
+
+# ╔═╡ 5afd56cc-3f72-4e52-9c59-d03f6ff9b38d
+begin   
+	using Pluto 
+	#--------------------------------------------------------------------------
+	println("pkgversion(Revise)        = ", pkgversion(Revise))
+	println("pkgversion(Pkg)           = ", pkgversion(Pkg))
+	println("pkgversion(Pluto)         = ", pkgversion(Pluto))
+	println("pkgversion(PCM_SICP_JP)   = ", pkgversion(PCM_SICP_JP))
+end # begin
+
+# ╔═╡ 5a7ea667-887b-438e-892e-0f20129819f5
+md"
+=============================================================================
+#### DP&BP\_Ch02\_01\_Creating Modules And Packages
+##### file: DP&BP\_Ch02\_01\_CreatingModulesAndPackages
+##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/06/22 ***
+=============================================================================
+"
+
+# ╔═╡ 4afcbdb6-6fba-406d-ac0c-2c3ff42e565e
+md"""
+---
+##### 0. Introduction
+This document is inspired by *Creating modules and packages* (in: Kwong, T., *Design Pattern and Best Practices with Julia*, 2020, ch.2, p.34-48), though we were forced to deviate in some places from Kwong's recommendations.
+
+Here we document how to develop 
+- a *personal* package $My\_SICP\_JP$ which is stored in folder "*C:/Users/claus/.julia/dev/*"; this package *cannot* be developed *within* PLUTO. It has to be developed as a *conventional* Julia *file*, e.g. with an IDE like e.g. *VS-Code*
+- a *connection* from $My\_SICP\_JP$ to another package $Dates$ so that $My\_SICP\_JP$ is able to use $Dates$ *directly*
+- a *PLUTO*-notebook that uses package $My\_SICP\_JP$ *directly* and $Dates$ *in*directly
+
+"""
+
+# ╔═╡ 55a8b0fd-b135-421b-a288-75096bb76ea5
+md"""
+---
+##### 1. *Generation* of *Personal* Package $My\_SICP\_JP$
+- >julia>]
+- >(@v1.11) pkg> add PkgTemplates
+- >(@v1.11) pkg>^C
+- >julia>using PkgTemplates
+- creation of package $My\_SICP\_JP$ with package $PkgTemplates$ in REPL
+  with multiple choice boxes
+  >julia>Template(interactive=true)("PCM\_SICP\_JP")
+- multiple choice boxes for:
+  >  [ ] user ("")
+
+  >  [ ] authors ("claus.moebus <claus.moebus@gmail.com> and contributors")
+
+  >  [ ] dir ("C:\\Users\\claus\\.julia\\dev")
+
+  >  [ ] host ("github.com")
+
+  >  [ ] julia (v"1.6.7")
+
+  >  [ ] plugins (PkgTemplates.Plugin[])
+
+- after choosing all or some boxes you have to input
+
+  >julia>q
+
+  so that further REPL-inputs are possible:
+
+  "Enter value for...."
+
+
+- creation of Julia module My\_SICP\_JP with Julia source code
+
+   > ```module My_SICP_JP <code> end```
+
+
+- transfer this code into folder "C:/Users/claus/.julia/dev/My\_SICP\_JP/src/..."
+
+"""
+
+# ╔═╡ b15e5a58-d2cf-4ad0-b7ed-e458b456f41f
+# Pkg.activate("C:/Users/claus/.julia/dev/PCM_SICP_JP")
+
+# ╔═╡ 92a32c6b-1188-4ccf-a46f-00f5f52a2004
+# pop!(LOAD_PATH)             # in certain cases
+
+# ╔═╡ 8402eb76-3441-4665-a00c-921b5304d53b
+Pkg.resolve()                # update the current manifest 
+
+# ╔═╡ 1a28f231-03e8-43f3-968c-bc589251c581
+Pkg.instantiate()            # download all packages in Manifest.toml and precompile
+
+# ╔═╡ 831df45f-5c18-4b1e-a747-65a00a309fe8
+md"
+---
+##### 2. *PLUTO*-Notebook using *Personal* Package $My\_SICP\_JP$
+
+"
+
+# ╔═╡ 4a4d97e9-d148-41df-9d99-59aa46b67575
+PCM_SICP_JP.interest(100.0, 0.035)              # function from package PCM_SICP_JP
+
+# ╔═╡ 1126372b-829d-486a-b075-c50ed5c1137f
+interest(100.0, 0.035)                          # function from package PCM_SICP_JP
+
+# ╔═╡ 3bbe562e-d44e-423e-acae-e934583378b0
+rate(100.0, 4.5)                                # function from package PCM_SICP_JP
+
+# ╔═╡ fc4ebdd5-a40c-4e6e-bcef-cde3154977cc
+# using Dates
+
+# ╔═╡ ab1e5957-fb32-4901-9f4d-2fee8e3b258a
+myDateNow
+
+# ╔═╡ aebd5712-e5a0-4419-9b73-9b4aae653850
+PCM_SICP_JP.myDateNow
+
+# ╔═╡ 857629f6-8f81-4ed2-bfdc-b2946ca97602
+md"
+---
+##### 3. Summary
+"
+
+# ╔═╡ be0f0fef-56f9-4463-9814-f8a07a4b437e
+md"
+---
+##### 4. References
+- **Kwong, T.**; *Hands On Design Patterns and Best Practices*, Birmingham, UK: Packt, 2020
+"
+
+# ╔═╡ 8b51e7d3-b21c-4b71-9dd4-8a6035e64741
+md"
+====================================================================================
+
+This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 International **(CC BY-NC-SA 4.0)** license. Comments, suggestions for improvement and bug reports are welcome: **claus.moebus(@)uol.de**
+
+====================================================================================
+"
+
+# ╔═╡ Cell order:
+# ╟─5a7ea667-887b-438e-892e-0f20129819f5
+# ╟─4afcbdb6-6fba-406d-ac0c-2c3ff42e565e
+# ╟─55a8b0fd-b135-421b-a288-75096bb76ea5
+# ╠═239ad810-be81-4572-9e7f-aede862376f4
+# ╠═269b9c8a-ac89-47ed-827f-27a0e21180a2
+# ╠═b15e5a58-d2cf-4ad0-b7ed-e458b456f41f
+# ╠═7941fade-9694-450d-b127-66a96742959a
+# ╠═92a32c6b-1188-4ccf-a46f-00f5f52a2004
+# ╠═608bf625-08ff-4f85-a0e3-b02bbfe9dece
+# ╠═587eaaf9-3886-41c3-8ff5-494d39f4368d
+# ╠═60180cc9-8de0-414e-a9c7-1933837b2e6e
+# ╠═152d9e34-5af7-46b8-9ba9-6837055c8a13
+# ╠═8402eb76-3441-4665-a00c-921b5304d53b
+# ╠═1a28f231-03e8-43f3-968c-bc589251c581
+# ╟─831df45f-5c18-4b1e-a747-65a00a309fe8
+# ╠═103d7336-a148-48ca-b5b7-17e842b7be4b
+# ╠═5afd56cc-3f72-4e52-9c59-d03f6ff9b38d
+# ╠═4a4d97e9-d148-41df-9d99-59aa46b67575
+# ╠═1126372b-829d-486a-b075-c50ed5c1137f
+# ╠═3bbe562e-d44e-423e-acae-e934583378b0
+# ╠═fc4ebdd5-a40c-4e6e-bcef-cde3154977cc
+# ╠═ab1e5957-fb32-4901-9f4d-2fee8e3b258a
+# ╠═aebd5712-e5a0-4419-9b73-9b4aae653850
+# ╟─857629f6-8f81-4ed2-bfdc-b2946ca97602
+# ╟─be0f0fef-56f9-4463-9814-f8a07a4b437e
+# ╟─8b51e7d3-b21c-4b71-9dd4-8a6035e64741
