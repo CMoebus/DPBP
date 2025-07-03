@@ -43,7 +43,7 @@ md"
 =============================================================================
 #### DP&BP\_Ch02\_01\_Creating Modules And Packages
 ##### file: DP&BP\_Ch02\_01\_CreatingModulesAndPackages
-##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/06/22 ***
+##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/07/03 ***
 =============================================================================
 "
 
@@ -133,11 +133,23 @@ rate(100.0, 4.5)                                # function from package PCM_SICP
 # ╔═╡ fc4ebdd5-a40c-4e6e-bcef-cde3154977cc
 # using Dates
 
+# ╔═╡ 9c6942a5-5632-4f30-8f04-428e48d950d1
+md"
+---
+The variable $myDateNow$ is an exported *variable* from package $PCM\_SICP\_JP$. It is set to the *compilation date* of that package which was *20th, June 2025*.
+"
+
 # ╔═╡ ab1e5957-fb32-4901-9f4d-2fee8e3b258a
 myDateNow                                       # old cached date
 
 # ╔═╡ aebd5712-e5a0-4419-9b73-9b4aae653850
 PCM_SICP_JP.myDateNow                           # old cached date
+
+# ╔═╡ 90494e7d-eabe-4d2a-b1b3-b27a8a9d0f51
+md"
+---
+The function $now()$ returns the *date of call*. It resides in package $Dates$. Either we call $now()$ *directly* from this Pluto notebook with $Dates.now()$, or we call it *in*directly via package $PCM\_SICP\_JP$ by $PCM\_SICP\_JP.Dates.now()$. In both cases we get the *date of call* which took place during construction of this Pluto notebook which was *thirteen* days later, namely *3rd, July 2025*.
+"
 
 # ╔═╡ f4dd3b99-0e79-4408-b5d6-653b0991aa8b
 PCM_SICP_JP.Dates.now()                         # actual noncached date
@@ -186,8 +198,10 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╠═1126372b-829d-486a-b075-c50ed5c1137f
 # ╠═3bbe562e-d44e-423e-acae-e934583378b0
 # ╠═fc4ebdd5-a40c-4e6e-bcef-cde3154977cc
+# ╟─9c6942a5-5632-4f30-8f04-428e48d950d1
 # ╠═ab1e5957-fb32-4901-9f4d-2fee8e3b258a
 # ╠═aebd5712-e5a0-4419-9b73-9b4aae653850
+# ╟─90494e7d-eabe-4d2a-b1b3-b27a8a9d0f51
 # ╠═f4dd3b99-0e79-4408-b5d6-653b0991aa8b
 # ╟─857629f6-8f81-4ed2-bfdc-b2946ca97602
 # ╟─be0f0fef-56f9-4463-9814-f8a07a4b437e
