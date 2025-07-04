@@ -1,0 +1,382 @@
+### A Pluto.jl notebook ###
+# v0.20.4
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 237a53e0-490c-11f0-3881-9f6ea28befc9
+md"
+=============================================================================
+#### DP&BP\_Ch04\_03\_Macros And Metaprogramming Techniques\_II
+##### file: DP&BP\_Ch04\_03\_MacrosAndMetaprogrammingTechniques\_II
+##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/07/04**
+
+=============================================================================
+"
+
+# ╔═╡ c1cf13b8-178f-4e28-ad1a-0d279c61d906
+md"
+---
+##### 0. Introduction
+"
+
+# ╔═╡ 50b84f7a-c313-4878-a96f-c0c332a028e2
+md"
+---
+##### 1. Packages
+"
+
+# ╔═╡ 7b4078c0-ca0f-463b-827d-78343bd1d264
+md"
+---
+##### 2. Code
+---
+###### 2.1 *Constructing Expressions Manually*
+(cf. Kwong, 2020, p.134)
+"
+
+# ╔═╡ 47c38ef7-6495-4fe2-b65f-ff154878c4e5
+Expr(:call, :+, :x, :y, :z)                        # ==> :(x + y + z)
+
+# ╔═╡ 172edec4-efc0-4cf4-9ca2-8583998cfbf5
+Expr(:call, :sin, Expr(:call, :+, :x, :y, :z))     # ==> :(sin(x + y + z))
+
+# ╔═╡ f2814daf-1b99-4160-a958-a368a8f4bf48
+md"
+---
+###### 2.2 Constructing ASTs with $dump(:(<expr>))\ \text{ == } :(expr)\ \text{|>}\ dump$
+(cf. Kwong, 2020, p.134f)
+"
+
+# ╔═╡ e32faafb-1d2d-44ba-b0ba-de01405f5a80
+:(x + y + z) |> dump
+
+# ╔═╡ e308ff0f-8927-420c-8654-ed700a019413
+:(sin(x + y + z)) |> dump
+
+# ╔═╡ 3a30d5c2-e129-44bf-8858-283692e4d6c7
+md"
+---
+###### 2.3 Assignment
+(cf. Kwong, 2020, p.136)
+"
+
+# ╔═╡ c3870436-b527-41da-bb65-01319fab8e72
+:(x = 1 + 2) |> dump
+
+# ╔═╡ d8b029f4-b52a-41d1-b94e-6f001e1a8de1
+md"
+---
+###### 2.4 Code Blocks
+(cf. Kwong, 2020, p.137)
+"
+
+# ╔═╡ d0bbac41-122e-419b-91f4-c442c49e863c
+:(
+	begin
+		x = 1
+		y = 2
+	end
+ ) |> dump
+
+# ╔═╡ bd8d98f4-d86e-4c63-8931-c4977970c083
+:(
+	begin
+		println("hello")
+		println(" world!")
+	end
+ ) |> dump
+
+# ╔═╡ 64268432-5332-4a88-8f23-dd5985973c63
+md"
+---
+###### 2.5 Conditionals
+(cf. Kwong, 2020, p.138)
+"
+
+# ╔═╡ 269b0c02-75d2-4842-a99e-af49fd4525e9
+:(
+	if 2 > 1
+		"good"
+	else
+		"bad"
+	end
+ ) |> dump
+
+# ╔═╡ 9be591fb-4e2b-4c79-b033-676e66f84199
+md"
+---
+###### 2.6 Loops
+(cf. Kwong, 2020, p.139)
+"
+
+# ╔═╡ 19cb7375-9624-4eb4-971e-4fbadc74971b
+:(
+	for i in 1:5
+		println("hello world $i")
+	end
+ ) |> dump
+
+# ╔═╡ cdc73e9d-aa81-49df-b5ba-5a1d38ac3d83
+md"
+---
+###### 2.7 Function Definitions
+(cf. Kwong, 2020, p.140)
+"
+
+# ╔═╡ bfbd9568-ebaa-48b8-8a41-eea9612ffefc
+:(
+	function foo(x; y=1)
+		x + y
+	end 
+ ) |> dump
+
+# ╔═╡ 68ef3995-807e-4a42-8478-7ff6582138ed
+md"
+---
+###### 2.8 Evaluating Expressions
+(cf. Kwong, 2020, p.141)
+"
+
+# ╔═╡ b9a8299b-05ee-4321-93a1-fa67a5648faf
+ix = 0
+
+# ╔═╡ ae76e5c4-5789-4ed0-b50f-8508a2ec23bf
+:(
+	ix = 1
+ ) 
+
+# ╔═╡ 12ad622a-1e89-4475-8d26-0dc36460b1d4
+:(
+	ix = 2
+ ) |> dump
+
+# ╔═╡ 13faaa9e-9aeb-4b39-b5b1-7bce59989fec
+:(
+	ix = 3
+ ) |> dump |> eval              
+
+# ╔═╡ 9b265aab-fff5-4244-b72c-14f024052910
+ix
+
+# ╔═╡ b2cdf9b0-f1a3-4141-9d43-8bdbdbe5dc90
+md"
+---
+(cf. Kwong, 2020, p.141)
+Evaluation of expressions actually happens in the *global* space. Proof by running $eval$ from *within* function.
+"
+
+# ╔═╡ d132c53f-bf93-4ec4-86a8-0c8740976ce3
+function foo1()
+	eval(:(ix = 4))
+end # function foo1
+
+# ╔═╡ bb45bea8-3d23-422c-91b5-78d324821364
+foo1()
+
+# ╔═╡ 4831b946-7541-4bf5-b0f9-8f43d422c223
+iy = 5
+
+# ╔═╡ dabc6bb7-0a82-4665-b051-76fd241ea72e
+function foo2()
+	iy = 6
+end # function foo2
+
+# ╔═╡ 9310357a-45ac-4dbe-96fb-7d978e2045c2
+foo2()
+
+# ╔═╡ 0c730972-9d28-49e5-a635-5ec5a8512b76
+function foo3()
+	eval(:(iy = 7))
+end # function foo3
+
+# ╔═╡ 57c65d49-6240-47d2-974f-e829dd3d5dee
+foo3()
+
+# ╔═╡ 2477803e-49b5-489f-a9b6-147ccb6549eb
+md"
+---
+###### 2.9 Interpolating Variables in Expressions
+(cf. Kwong, 2020, p.142)
+"
+
+# ╔═╡ 455aa7d5-dc42-43bd-809e-812024bee897
+x = 4.0
+
+# ╔═╡ d2e81e24-169a-470c-afa0-f72f0f09a7fa
+sqrt(x)
+
+# ╔═╡ 11420160-24db-411d-80bf-29428862e059
+:(sqrt($x))
+
+# ╔═╡ 6eeb65f3-4eef-464f-ab6d-4f1e1005566d
+eval(:(sqrt($x)))
+
+# ╔═╡ f7491a82-62df-46a7-988f-4c54ab0e4ea0
+vect = [1, 2, 3]
+
+# ╔═╡ f28cef14-0645-4bcd-8c7c-1b15603873f7
+:(max($(vect...)))
+
+# ╔═╡ 03291af7-42dc-4534-9d3a-263a28ce3302
+eval(:(max($(vect...))))
+
+# ╔═╡ daddcb86-c1ab-4e0b-aa58-f8331a220269
+quote
+	max($(vect...))
+end # quote
+
+# ╔═╡ 71d53dcb-a737-4fa9-9c81-a1cbc9847e96
+eval(
+	quote
+		max($(vect...))
+	end) # quote
+
+# ╔═╡ b185d8d8-b382-4b8b-abe0-d403eea211fb
+quote
+	max($vect...)
+end # quote
+
+# ╔═╡ 3b25635f-9161-4918-9932-a0b21eb3bbd4
+eval(
+	quote
+		max($vect...)
+	end) # quote
+
+# ╔═╡ 500fe009-f723-4033-967e-8f8241dee887
+md"
+---
+###### 2.10 Using QuoteNode for Symbols
+(cf. Kwong, 2020, p.143f)
+"
+
+# ╔═╡ 43091207-72c6-4d45-bc84-71cbdc35a81a
+:(x = y) |> dump
+
+# ╔═╡ 8394a35f-3708-4170-8caf-99151edb40e0
+:(x = :hello) |> dump
+
+# ╔═╡ 8f969c95-55e8-41f3-9b0d-4b0b1034f851
+sym = QuoteNode(:hellohello)
+
+# ╔═╡ c31b2af6-2849-4321-8e59-44bf1c4baa9a
+:(x = $sym)
+
+# ╔═╡ c02841a4-b600-4849-bfc6-f0c816ecab0f
+:(x = $sym) |> dump
+
+# ╔═╡ 24dbab33-7206-4dae-89bf-00d80c6a9027
+md"
+---
+###### 2.11 Interpolating in Nested Expressions
+(cf. Kwong, 2020, p.145f)
+"
+
+# ╔═╡ 40a30301-8c3c-4718-8f3f-ade681c5baec
+:(x = 1 + 1) |> dump
+
+# ╔═╡ 56c4fe48-0cc3-4040-8f96-4de05ce051d4
+:(x = 1 + 1) |> eval
+
+# ╔═╡ 58d14af6-7919-4848-b35b-643c936000ff
+:( :( x = 1)) |> dump
+
+# ╔═╡ 6e28f2bb-c36d-4e32-9a4a-198ada9202e4
+:( :( x = 1)) |> eval
+
+# ╔═╡ e82770d3-a023-4845-8782-a4dff561ed51
+v = 2
+
+# ╔═╡ df8d5856-72b9-439e-80b2-fa68717478c0
+:( :( x = $v)) |> dump
+
+# ╔═╡ 4614762f-8335-4baf-9168-5fbd468ebbd9
+:( :( x = $($v))) |> dump
+
+# ╔═╡ dbd26569-3180-4a26-80b6-a27da23aac95
+md"
+---
+##### 3. Summary
+"
+
+# ╔═╡ a0f7535f-134e-4d06-96fa-47c863890f85
+md"
+---
+##### 4. References
+
+- **Kwong, T.**; *Hands On Design Patterns and Best Practices*, Birmingham, UK: Packt, 2020
+"
+
+# ╔═╡ b4137e92-ef10-4000-b1a1-b874ae3911e1
+md"
+====================================================================================
+
+This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 International **(CC BY-NC-SA 4.0)** license. Comments, suggestions for improvement and bug reports are welcome: **claus.moebus(@)uol.de**
+
+===================================================================================
+"
+
+# ╔═╡ Cell order:
+# ╟─237a53e0-490c-11f0-3881-9f6ea28befc9
+# ╟─c1cf13b8-178f-4e28-ad1a-0d279c61d906
+# ╟─50b84f7a-c313-4878-a96f-c0c332a028e2
+# ╟─7b4078c0-ca0f-463b-827d-78343bd1d264
+# ╠═47c38ef7-6495-4fe2-b65f-ff154878c4e5
+# ╠═172edec4-efc0-4cf4-9ca2-8583998cfbf5
+# ╟─f2814daf-1b99-4160-a958-a368a8f4bf48
+# ╠═e32faafb-1d2d-44ba-b0ba-de01405f5a80
+# ╠═e308ff0f-8927-420c-8654-ed700a019413
+# ╟─3a30d5c2-e129-44bf-8858-283692e4d6c7
+# ╠═c3870436-b527-41da-bb65-01319fab8e72
+# ╟─d8b029f4-b52a-41d1-b94e-6f001e1a8de1
+# ╠═d0bbac41-122e-419b-91f4-c442c49e863c
+# ╠═bd8d98f4-d86e-4c63-8931-c4977970c083
+# ╟─64268432-5332-4a88-8f23-dd5985973c63
+# ╠═269b0c02-75d2-4842-a99e-af49fd4525e9
+# ╟─9be591fb-4e2b-4c79-b033-676e66f84199
+# ╠═19cb7375-9624-4eb4-971e-4fbadc74971b
+# ╟─cdc73e9d-aa81-49df-b5ba-5a1d38ac3d83
+# ╠═bfbd9568-ebaa-48b8-8a41-eea9612ffefc
+# ╟─68ef3995-807e-4a42-8478-7ff6582138ed
+# ╠═b9a8299b-05ee-4321-93a1-fa67a5648faf
+# ╠═ae76e5c4-5789-4ed0-b50f-8508a2ec23bf
+# ╠═12ad622a-1e89-4475-8d26-0dc36460b1d4
+# ╠═13faaa9e-9aeb-4b39-b5b1-7bce59989fec
+# ╠═9b265aab-fff5-4244-b72c-14f024052910
+# ╟─b2cdf9b0-f1a3-4141-9d43-8bdbdbe5dc90
+# ╠═d132c53f-bf93-4ec4-86a8-0c8740976ce3
+# ╠═bb45bea8-3d23-422c-91b5-78d324821364
+# ╠═4831b946-7541-4bf5-b0f9-8f43d422c223
+# ╠═dabc6bb7-0a82-4665-b051-76fd241ea72e
+# ╠═9310357a-45ac-4dbe-96fb-7d978e2045c2
+# ╠═0c730972-9d28-49e5-a635-5ec5a8512b76
+# ╠═57c65d49-6240-47d2-974f-e829dd3d5dee
+# ╟─2477803e-49b5-489f-a9b6-147ccb6549eb
+# ╠═455aa7d5-dc42-43bd-809e-812024bee897
+# ╠═d2e81e24-169a-470c-afa0-f72f0f09a7fa
+# ╠═11420160-24db-411d-80bf-29428862e059
+# ╠═6eeb65f3-4eef-464f-ab6d-4f1e1005566d
+# ╠═f7491a82-62df-46a7-988f-4c54ab0e4ea0
+# ╠═f28cef14-0645-4bcd-8c7c-1b15603873f7
+# ╠═03291af7-42dc-4534-9d3a-263a28ce3302
+# ╠═daddcb86-c1ab-4e0b-aa58-f8331a220269
+# ╠═71d53dcb-a737-4fa9-9c81-a1cbc9847e96
+# ╠═b185d8d8-b382-4b8b-abe0-d403eea211fb
+# ╠═3b25635f-9161-4918-9932-a0b21eb3bbd4
+# ╟─500fe009-f723-4033-967e-8f8241dee887
+# ╠═43091207-72c6-4d45-bc84-71cbdc35a81a
+# ╠═8394a35f-3708-4170-8caf-99151edb40e0
+# ╠═8f969c95-55e8-41f3-9b0d-4b0b1034f851
+# ╠═c31b2af6-2849-4321-8e59-44bf1c4baa9a
+# ╠═c02841a4-b600-4849-bfc6-f0c816ecab0f
+# ╟─24dbab33-7206-4dae-89bf-00d80c6a9027
+# ╠═40a30301-8c3c-4718-8f3f-ade681c5baec
+# ╠═56c4fe48-0cc3-4040-8f96-4de05ce051d4
+# ╠═58d14af6-7919-4848-b35b-643c936000ff
+# ╠═6e28f2bb-c36d-4e32-9a4a-198ada9202e4
+# ╠═e82770d3-a023-4845-8782-a4dff561ed51
+# ╠═df8d5856-72b9-439e-80b2-fa68717478c0
+# ╠═4614762f-8335-4baf-9168-5fbd468ebbd9
+# ╟─dbd26569-3180-4a26-80b6-a27da23aac95
+# ╟─a0f7535f-134e-4d06-96fa-47c863890f85
+# ╟─b4137e92-ef10-4000-b1a1-b874ae3911e1
