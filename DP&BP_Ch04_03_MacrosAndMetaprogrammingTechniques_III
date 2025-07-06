@@ -1,0 +1,339 @@
+### A Pluto.jl notebook ###
+# v0.20.4
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ 4f39dd10-47aa-11f0-0a76-f551fe1e1444
+md"
+=============================================================================
+#### DP&BP\_Ch04\_03\_Macros And Metaprogramming Techniques\_III
+##### file: DP&BP\_Ch04\_03\_MacrosAndMetaprogrammingTechniques\_III
+##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/07/06 ***
+
+=============================================================================
+"
+
+# ╔═╡ b7931308-da40-4b38-848a-5b4ce5a3ac28
+md"
+---
+##### 0. Introduction
+"
+
+# ╔═╡ d61b9bc8-a5e1-4f7b-9210-280adf884f5f
+md"
+---
+##### 1. Packages
+"
+
+# ╔═╡ 9a907345-4c53-4efa-ba1c-67b9fc8c6f9d
+md"
+---
+##### 2. Code
+"
+
+# ╔═╡ 93727261-3d55-4d6f-ab1d-573b98362a3a
+md"
+---
+###### 2.1 Writing Our First Macro
+(cf. Kwong, 2020, p.148)
+"
+
+# ╔═╡ ba7236fe-2ca2-4b35-b358-2f4690759dcf
+macro holla()
+	:(
+		for i in 1:3
+			println("hello world !")
+		end  # for
+	 )
+end # macro
+
+# ╔═╡ 0a864fbb-cb38-41fd-8b42-fcac38fa07cf
+md"
+---
+###### 2.2 Passing Literal Arguments
+(cf. Kwong, 2020, p.149)
+"
+
+# ╔═╡ 21b7510c-a3a4-4de6-9e77-82031b1a495f
+macro holla(n)
+	:(
+		for i in 1:$n
+			println("hello world $i)!")
+		end  # for
+	 )
+end # macro
+
+# ╔═╡ ef39c56d-1fbe-44b1-9fe2-9f020b6cbdd6
+@holla()
+
+# ╔═╡ 22650368-c09f-4732-940c-faa29162d824
+@holla(2)
+
+# ╔═╡ 3f3b2ddf-468b-42a4-bb45-4a233ad572b4
+@holla 3
+
+# ╔═╡ cafccc07-85a8-48b1-aa56-7707a4a974c1
+md"
+---
+###### 2.3 Passing Expression Arguments
+(cf. Kwong, 2020, p.150f)
+"
+
+# ╔═╡ 97ec612a-5c79-4a5f-9687-49dc32f8aabd
+a = 1; b = "hello"; c = "holla"
+
+# ╔═╡ d146107c-6df1-4e03-bce7-ba59e767759e
+show                        # ==> 289 (!) methods
+
+# ╔═╡ 273ad278-75d8-4ab6-8b2a-cb9e61b70246
+@show a; @show b; @show c
+
+# ╔═╡ 66991ca4-b6fb-4c33-9eab-98bfef31774e
+md"
+---
+###### 2.3.1 *Function* $showme$: passing *values (= evaluated* expressions)
+"
+
+# ╔═╡ 075d4756-5d90-4947-bb34-baeb1fabd575
+function showme(x)
+	@show x
+end # function
+
+# ╔═╡ ed3ecd4c-20d2-4d4c-8d8f-82747c6dba93
+showme(a); showme(b); showme(c)
+
+# ╔═╡ 2e50265a-b333-480f-aeaa-ba51e187eff5
+md"
+---
+###### 2.3.2 *Macro* $showme$: passing *un*evaluated expressions
+"
+
+# ╔═╡ a32b9ced-d366-4834-9400-023e65dde986
+macro showme(x)
+	@show x
+end # function
+
+# ╔═╡ 8bd56cd3-6916-4d22-96be-f1d3aec685cb
+@showme(a); @showme(b); @showme(c)
+
+# ╔═╡ d1bd6701-6657-4b65-a31e-20d6eee7ad45
+@showme a; @showme b; @showme c
+
+# ╔═╡ 734f0075-d4fc-4d91-b96b-58133bdca6fe
+md"
+---
+###### 2.4 Understanding the Macro Expansion Process
+"
+
+# ╔═╡ 4249d0d5-d976-4da5-b823-5256202567be
+@macroexpand @holla 3
+
+# ╔═╡ da1f6e05-0d94-449e-b6a1-c21a746df4c5
+md"
+---
+###### 2.5 Timing of Macro Expansion
+(cf. Kwong, 2020, p.152f)
+- In the REPL any macro is expanded as soon as we invoke it
+- in the function definition the macro is expanded as part of the function compilation process
+"
+
+# ╔═╡ 53857ca9-fa39-452d-bef1-549ba25e98e2
+ macro identity(expr)                         # macro definition
+	 dump(expr)
+	 expr
+ end # macro
+
+# ╔═╡ c205ff4c-bd52-474a-93c8-dcbbda7f705f
+function fooIdentity()
+	@identity 1 + 2 + 3                       # expansions time
+end # function
+
+# ╔═╡ dc98e8ab-153a-4c86-be66-71280c99e26f
+ fooIdentity()
+
+# ╔═╡ 81483973-8563-44d1-bf35-8362df0dd8d2
+@code_lowered fooIdentity()
+
+# ╔═╡ 6eef1bc8-b4d7-4b18-9d28-48ea0363c5c4
+@code_llvm fooIdentity()
+
+# ╔═╡ a879b14b-bc67-49e3-83e5-1e666387ee99
+md"
+---
+##### 3. Manipulating Expressions
+"
+
+# ╔═╡ 4ddf7744-d172-4342-bac4-a7a946f398e3
+md"
+---
+###### 3.1 Example 1: Making a New Expression
+(cf. Kwong, 2020, p.154f)
+"
+
+# ╔═╡ 949e1e5a-0e9c-4df3-9af4-eeec3546a87f
+macro squareMacro(expr)
+	:($expr * $expr)
+end # macro
+
+# ╔═╡ d0b5a852-c75b-4ee2-9a76-e9b34f2cfdc4
+@squareMacro(3)
+
+# ╔═╡ 82860628-e9e9-4f6d-b291-cd533f4a9c17
+@macroexpand @squareMacro 3
+
+# ╔═╡ 0ced26e4-589c-43d2-b662-8ed0f51c0cfd
+macro squareMacro2(expr)
+	:($(expr) * $(expr))
+end # macro
+
+# ╔═╡ c65f3e37-6ecd-4b44-9cd5-9070c01251bb
+@squareMacro2(3)
+
+# ╔═╡ ff19d3ae-c50d-4ee4-91fb-33dec5a81b33
+@macroexpand @squareMacro2 3
+
+# ╔═╡ 140188d7-7561-4ff0-80ad-0a757c39d8ca
+function fooSquare()
+	x = 2
+	@squareMacro x
+end # function
+
+# ╔═╡ c5487351-784c-4c65-9663-a6e6b57ccad1
+fooSquare()
+
+# ╔═╡ 165122af-b082-4aec-83a1-87478092a25a
+@code_lowered fooSquare()
+
+# ╔═╡ fb7d35f9-6477-4e4c-920e-34cb480f0518
+macro squareMacroEscaped(expr)
+	:($(esc(expr)) * $(esc(expr)))
+end # macro squareMacroEscaped
+
+# ╔═╡ b38887e7-d959-4fbf-9f05-7162d36afc63
+@squareMacroEscaped(3)
+
+# ╔═╡ 680ec0ae-2341-4de7-87ee-7c141acf0416
+function fooSquareEscaped()
+	x = 2
+	@squareMacroEscaped x
+end # function fooSquareEscaped
+
+# ╔═╡ 65540334-1cf1-446c-9f48-a696f8a902ea
+fooSquareEscaped()
+
+# ╔═╡ 4971b613-e240-4ab6-8105-f765913dd016
+md"
+---
+###### 3.2 Example 2: Tweaking the Abstract Syntax Tree
+(cf. Kwong, 2020, p.156f)
+"
+
+# ╔═╡ 26d476ed-7df5-430e-a796-68d409ff2ef7
+:(sin(x)) |> dump
+
+# ╔═╡ abe9dc34-4e31-44f9-a46b-fa0b8d8ed74b
+:(sin(sin(x))) |> dump
+
+# ╔═╡ 84cfdfe6-3477-4acc-9c19-278dab7b7074
+macro compose_twice(expr)
+	@assert expr.head == :call
+	@assert length(expr.args) == 2
+	me = copy(expr)
+	expr.args[2] = me
+	expr
+end # macro compose_twice
+
+# ╔═╡ 62981248-7836-426c-a041-e9d89e4355a5
+@compose_twice(sin(1))
+
+# ╔═╡ 750c9be5-83ff-4537-abd4-2a6ed76d91ac
+@compose_twice sin(1)
+
+# ╔═╡ dfc4b815-1470-4fca-8784-8e5d862cf6da
+sin(sin(1))
+
+# ╔═╡ d807ed16-908e-4d28-9f44-1b224876bc2c
+(@compose_twice sin(1)) == sin(sin(1))
+
+# ╔═╡ 84f110f2-1dfb-4e11-a9fb-5a7b29fd494b
+md"
+---
+##### 3. Summary
+"
+
+# ╔═╡ 80c7174a-186f-4102-ac02-134a192f3d9b
+md"
+---
+##### 4. References
+
+- **Kwong, T.**; *Hands On Design Patterns and Best Practices*, Birmingham, UK: Packt, 2020
+
+"
+
+# ╔═╡ 59e72b4e-7a80-41c4-ab00-e2c979792104
+md"
+====================================================================================
+
+This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 International **(CC BY-NC-SA 4.0)** license. Comments, suggestions for improvement and bug reports are welcome: **claus.moebus(@)uol.de**
+
+===================================================================================
+"
+
+# ╔═╡ Cell order:
+# ╟─4f39dd10-47aa-11f0-0a76-f551fe1e1444
+# ╟─b7931308-da40-4b38-848a-5b4ce5a3ac28
+# ╟─d61b9bc8-a5e1-4f7b-9210-280adf884f5f
+# ╟─9a907345-4c53-4efa-ba1c-67b9fc8c6f9d
+# ╟─93727261-3d55-4d6f-ab1d-573b98362a3a
+# ╠═ba7236fe-2ca2-4b35-b358-2f4690759dcf
+# ╠═ef39c56d-1fbe-44b1-9fe2-9f020b6cbdd6
+# ╟─0a864fbb-cb38-41fd-8b42-fcac38fa07cf
+# ╠═21b7510c-a3a4-4de6-9e77-82031b1a495f
+# ╠═22650368-c09f-4732-940c-faa29162d824
+# ╠═3f3b2ddf-468b-42a4-bb45-4a233ad572b4
+# ╟─cafccc07-85a8-48b1-aa56-7707a4a974c1
+# ╠═97ec612a-5c79-4a5f-9687-49dc32f8aabd
+# ╠═d146107c-6df1-4e03-bce7-ba59e767759e
+# ╠═273ad278-75d8-4ab6-8b2a-cb9e61b70246
+# ╟─66991ca4-b6fb-4c33-9eab-98bfef31774e
+# ╠═075d4756-5d90-4947-bb34-baeb1fabd575
+# ╠═ed3ecd4c-20d2-4d4c-8d8f-82747c6dba93
+# ╟─2e50265a-b333-480f-aeaa-ba51e187eff5
+# ╠═a32b9ced-d366-4834-9400-023e65dde986
+# ╠═8bd56cd3-6916-4d22-96be-f1d3aec685cb
+# ╠═d1bd6701-6657-4b65-a31e-20d6eee7ad45
+# ╟─734f0075-d4fc-4d91-b96b-58133bdca6fe
+# ╠═4249d0d5-d976-4da5-b823-5256202567be
+# ╟─da1f6e05-0d94-449e-b6a1-c21a746df4c5
+# ╠═53857ca9-fa39-452d-bef1-549ba25e98e2
+# ╠═c205ff4c-bd52-474a-93c8-dcbbda7f705f
+# ╠═dc98e8ab-153a-4c86-be66-71280c99e26f
+# ╠═81483973-8563-44d1-bf35-8362df0dd8d2
+# ╠═6eef1bc8-b4d7-4b18-9d28-48ea0363c5c4
+# ╟─a879b14b-bc67-49e3-83e5-1e666387ee99
+# ╟─4ddf7744-d172-4342-bac4-a7a946f398e3
+# ╠═949e1e5a-0e9c-4df3-9af4-eeec3546a87f
+# ╠═d0b5a852-c75b-4ee2-9a76-e9b34f2cfdc4
+# ╠═82860628-e9e9-4f6d-b291-cd533f4a9c17
+# ╠═0ced26e4-589c-43d2-b662-8ed0f51c0cfd
+# ╠═c65f3e37-6ecd-4b44-9cd5-9070c01251bb
+# ╠═ff19d3ae-c50d-4ee4-91fb-33dec5a81b33
+# ╠═140188d7-7561-4ff0-80ad-0a757c39d8ca
+# ╠═c5487351-784c-4c65-9663-a6e6b57ccad1
+# ╠═165122af-b082-4aec-83a1-87478092a25a
+# ╠═fb7d35f9-6477-4e4c-920e-34cb480f0518
+# ╠═b38887e7-d959-4fbf-9f05-7162d36afc63
+# ╠═680ec0ae-2341-4de7-87ee-7c141acf0416
+# ╠═65540334-1cf1-446c-9f48-a696f8a902ea
+# ╟─4971b613-e240-4ab6-8105-f765913dd016
+# ╠═26d476ed-7df5-430e-a796-68d409ff2ef7
+# ╠═abe9dc34-4e31-44f9-a46b-fa0b8d8ed74b
+# ╠═84cfdfe6-3477-4acc-9c19-278dab7b7074
+# ╠═62981248-7836-426c-a041-e9d89e4355a5
+# ╠═750c9be5-83ff-4537-abd4-2a6ed76d91ac
+# ╠═dfc4b815-1470-4fca-8784-8e5d862cf6da
+# ╠═d807ed16-908e-4d28-9f44-1b224876bc2c
+# ╟─84f110f2-1dfb-4e11-a9fb-5a7b29fd494b
+# ╟─80c7174a-186f-4102-ac02-134a192f3d9b
+# ╟─59e72b4e-7a80-41c4-ab00-e2c979792104
