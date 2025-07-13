@@ -1,17 +1,17 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.13
 
 using Markdown
 using InteractiveUtils
 
 # ╔═╡ 237a53e0-490c-11f0-3881-9f6ea28befc9
 md"
-=============================================================================
+=====================================================================================
 #### DP&BP\_Ch04\_03\_Macros And Metaprogramming Techniques\_II
 ##### file: DP&BP\_Ch04\_03\_MacrosAndMetaprogrammingTechniques\_II
-##### code: Julia_11.3/Pluto (1.11.3/0.20.4) by PCM *** 2025/07/04**
+##### code: Julia_11.3/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/13 ***
 
-=============================================================================
+=====================================================================================
 "
 
 # ╔═╡ c1cf13b8-178f-4e28-ad1a-0d279c61d906
@@ -20,45 +20,56 @@ md"
 ##### 0. Introduction
 "
 
+# ╔═╡ 54bbddaf-1d90-4c7f-8a2c-91a6c0360391
+md"
+---
+##### 1. Topics
+"
+
 # ╔═╡ 50b84f7a-c313-4878-a96f-c0c332a028e2
 md"
 ---
-##### 1. Packages
+##### 2. Packages
 "
 
 # ╔═╡ 7b4078c0-ca0f-463b-827d-78343bd1d264
 md"
 ---
-##### 2. Code
+##### 3. Code
 ---
-###### 2.1 *Constructing Expressions Manually*
+###### 3.1 *Constructing Expressions Manually*
 (cf. Kwong, 2020, p.134)
+
+The $Expr$-construtor has the *signature*:
+
+$Expr(head::Symbol, args::Any...)$
+
 "
 
 # ╔═╡ 47c38ef7-6495-4fe2-b65f-ff154878c4e5
-Expr(:call, :+, :x, :y, :z)                        # ==> :(x + y + z)
+expr1 = Expr(:call, :+, :x, :y, :z)                        # ==> :(x + y + z)
 
 # ╔═╡ 172edec4-efc0-4cf4-9ca2-8583998cfbf5
-Expr(:call, :sin, Expr(:call, :+, :x, :y, :z))     # ==> :(sin(x + y + z))
+expr2 = Expr(:call, :sin, Expr(:call, :+, :x, :y, :z))     # ==> :(sin(x + y + z))
 
 # ╔═╡ f2814daf-1b99-4160-a958-a368a8f4bf48
 md"
 ---
-###### 2.2 Constructing ASTs with $dump(:(<expr>))\ \text{ == } :(expr)\ \text{|>}\ dump$
+###### 3.2 Constructing ASTs with $dump(:(<expr>))\ \text{ == } :(expr)\ \text{|>}\ dump$
 (cf. Kwong, 2020, p.134f)
 "
 
-# ╔═╡ e32faafb-1d2d-44ba-b0ba-de01405f5a80
-:(x + y + z) |> dump
+# ╔═╡ c3ed12cc-0dc8-43b4-a7c7-8f965611a6ec
+expr1 |> dump
 
-# ╔═╡ e308ff0f-8927-420c-8654-ed700a019413
-:(sin(x + y + z)) |> dump
+# ╔═╡ caf2a878-8b47-40c7-8b63-f45a44f80278
+expr2 |> dump
 
 # ╔═╡ 3a30d5c2-e129-44bf-8858-283692e4d6c7
 md"
 ---
-###### 2.3 Assignment
-(cf. Kwong, 2020, p.136)
+###### 3.3 Assignment
+(cf. Kwong, 2020, p.135f.)
 "
 
 # ╔═╡ c3870436-b527-41da-bb65-01319fab8e72
@@ -67,21 +78,19 @@ md"
 # ╔═╡ d8b029f4-b52a-41d1-b94e-6f001e1a8de1
 md"
 ---
-###### 2.4 Code Blocks
-(cf. Kwong, 2020, p.137)
+###### 3.4 Code Blocks
+(cf. Kwong, 2020, p.135, 137)
 "
 
 # ╔═╡ d0bbac41-122e-419b-91f4-c442c49e863c
-:(
-	begin
+:(  begin
 		x = 1
 		y = 2
 	end
  ) |> dump
 
 # ╔═╡ bd8d98f4-d86e-4c63-8931-c4977970c083
-:(
-	begin
+:(  begin
 		println("hello")
 		println(" world!")
 	end
@@ -90,13 +99,12 @@ md"
 # ╔═╡ 64268432-5332-4a88-8f23-dd5985973c63
 md"
 ---
-###### 2.5 Conditionals
+###### 3.5 Conditionals
 (cf. Kwong, 2020, p.138)
 "
 
 # ╔═╡ 269b0c02-75d2-4842-a99e-af49fd4525e9
-:(
-	if 2 > 1
+:(  if 2 > 1
 		"good"
 	else
 		"bad"
@@ -106,13 +114,12 @@ md"
 # ╔═╡ 9be591fb-4e2b-4c79-b033-676e66f84199
 md"
 ---
-###### 2.6 Loops
+###### 3.6 Loops
 (cf. Kwong, 2020, p.139)
 "
 
 # ╔═╡ 19cb7375-9624-4eb4-971e-4fbadc74971b
-:(
-	for i in 1:5
+:(  for i in 1:5
 		println("hello world $i")
 	end
  ) |> dump
@@ -120,13 +127,12 @@ md"
 # ╔═╡ cdc73e9d-aa81-49df-b5ba-5a1d38ac3d83
 md"
 ---
-###### 2.7 Function Definitions
+###### 3.7 Function Definitions
 (cf. Kwong, 2020, p.140)
 "
 
 # ╔═╡ bfbd9568-ebaa-48b8-8a41-eea9612ffefc
-:(
-	function foo(x; y=1)
+:(  function foo(x; y=1)
 		x + y
 	end 
  ) |> dump
@@ -134,30 +140,31 @@ md"
 # ╔═╡ 68ef3995-807e-4a42-8478-7ff6582138ed
 md"
 ---
-###### 2.8 Evaluating Expressions
+###### 3.8 Evaluating Expressions
 (cf. Kwong, 2020, p.141)
+Evaluation of expressions actually happens in the *global* space. Proof by running $eval$ from *within* function.
 "
 
-# ╔═╡ b9a8299b-05ee-4321-93a1-fa67a5648faf
-ix = 0
+# ╔═╡ 6cd033c1-26b2-4db0-832e-ba41a2f88482
+Symbol("=")
 
 # ╔═╡ ae76e5c4-5789-4ed0-b50f-8508a2ec23bf
-:(
-	ix = 1
- ) 
+:(ix = 1) 
 
-# ╔═╡ 12ad622a-1e89-4475-8d26-0dc36460b1d4
-:(
-	ix = 2
- ) |> dump
+# ╔═╡ cca63715-21f6-4c8a-b2af-2786f60af44e
+expr3 = Expr(Symbol("="), :ix, 1)
 
-# ╔═╡ 13faaa9e-9aeb-4b39-b5b1-7bce59989fec
-:(
-	ix = 3
- ) |> dump |> eval              
+# ╔═╡ ffd2c9d8-d4ce-4058-a893-e473305e7219
+expr3 |> eval
 
-# ╔═╡ 9b265aab-fff5-4244-b72c-14f024052910
-ix
+# ╔═╡ b9a8299b-05ee-4321-93a1-fa67a5648faf
+let ix = 0
+	expr = Expr(Symbol("="), :ix, 2) 
+	expr |> eval
+end # let                                        # ==> 2 --> :)
+
+# ╔═╡ c691a863-0571-4e20-a3bf-a1316f2d3bb2
+ix                                               # ==> 2 --> :)
 
 # ╔═╡ b2cdf9b0-f1a3-4141-9d43-8bdbdbe5dc90
 md"
@@ -196,7 +203,7 @@ foo3()
 # ╔═╡ 2477803e-49b5-489f-a9b6-147ccb6549eb
 md"
 ---
-###### 2.9 Interpolating Variables in Expressions
+###### 3.9 *Interpolating* Variables in Expressions and *Splatting* (= *Spitting*)
 (cf. Kwong, 2020, p.142)
 "
 
@@ -216,37 +223,24 @@ eval(:(sqrt($x)))
 vect = [1, 2, 3]
 
 # ╔═╡ f28cef14-0645-4bcd-8c7c-1b15603873f7
-:(max($(vect...)))
+:(max($(vect...)))                        # splatting (= spitting)
 
 # ╔═╡ 03291af7-42dc-4534-9d3a-263a28ce3302
-eval(:(max($(vect...))))
+:(max($(vect...))) |> eval
 
 # ╔═╡ daddcb86-c1ab-4e0b-aa58-f8331a220269
-quote
-	max($(vect...))
-end # quote
-
-# ╔═╡ 71d53dcb-a737-4fa9-9c81-a1cbc9847e96
-eval(
+expr4 =
 	quote
 		max($(vect...))
-	end) # quote
+	end # quote
 
-# ╔═╡ b185d8d8-b382-4b8b-abe0-d403eea211fb
-quote
-	max($vect...)
-end # quote
-
-# ╔═╡ 3b25635f-9161-4918-9932-a0b21eb3bbd4
-eval(
-	quote
-		max($vect...)
-	end) # quote
+# ╔═╡ 71d53dcb-a737-4fa9-9c81-a1cbc9847e96
+expr4 |> eval
 
 # ╔═╡ 500fe009-f723-4033-967e-8f8241dee887
 md"
 ---
-###### 2.10 Using QuoteNode for Symbols
+###### 3.10 Using QuoteNode for Symbols
 (cf. Kwong, 2020, p.143f)
 "
 
@@ -257,53 +251,111 @@ md"
 :(x = :hello) |> dump
 
 # ╔═╡ 8f969c95-55e8-41f3-9b0d-4b0b1034f851
-sym = QuoteNode(:hellohello)
+symb = QuoteNode(:hellohello)
 
 # ╔═╡ c31b2af6-2849-4321-8e59-44bf1c4baa9a
-:(x = $sym)
+:(x = $symb)
 
 # ╔═╡ c02841a4-b600-4849-bfc6-f0c816ecab0f
-:(x = $sym) |> dump
+:(x = $symb) |> dump
 
 # ╔═╡ 24dbab33-7206-4dae-89bf-00d80c6a9027
 md"
 ---
-###### 2.11 Interpolating in Nested Expressions
+###### 3.11 Interpolating in Nested Expressions
 (cf. Kwong, 2020, p.145f)
 "
 
 # ╔═╡ 40a30301-8c3c-4718-8f3f-ade681c5baec
-:(x = 1 + 1) |> dump
+:(x = 1 + 2) |> dump
 
 # ╔═╡ 56c4fe48-0cc3-4040-8f96-4de05ce051d4
-:(x = 1 + 1) |> eval
+:(x = 1 + 2) |> eval
+
+# ╔═╡ 48f7bdcb-55c6-4027-97cd-8afcee645afb
+x
+
+# ╔═╡ ab3744da-38ad-4e3d-aa81-87f1f9f257a9
+expr5 = :( :( x = 1))
 
 # ╔═╡ 58d14af6-7919-4848-b35b-643c936000ff
-:( :( x = 1)) |> dump
+expr5 |> dump
 
-# ╔═╡ 6e28f2bb-c36d-4e32-9a4a-198ada9202e4
-:( :( x = 1)) |> eval
+# ╔═╡ 47d1753c-063d-4f30-ac3d-dd074bbd1adb
+expr5 |> eval
+
+# ╔═╡ d673120d-504b-4a18-af3e-6fd5759e3cc0
+expr6 = Expr(Symbol("quote"), Expr(Symbol("="), :x, 1))
+
+# ╔═╡ c844ba5f-7710-4193-bacd-681a03523991
+expr5 == expr6
 
 # ╔═╡ e82770d3-a023-4845-8782-a4dff561ed51
-v = 2
+v = 3
+
+# ╔═╡ 64751382-1f55-4d6b-b91b-bdf6f001cf89
+x
 
 # ╔═╡ df8d5856-72b9-439e-80b2-fa68717478c0
-:( :( x = $v)) |> dump
+expr7 = :( :( ixx = $v))
+
+# ╔═╡ 42c9d00e-c84f-470d-9180-36bc8450b755
+expr7 |> dump
+
+# ╔═╡ e4d02b4e-d597-4278-b552-9f865b1dda21
+expr7 |> eval
+
+# ╔═╡ 26eb7da0-6a28-40b8-abed-b86ed16378e1
+expr8 = :($(Expr(:quote, :(ixx = $(Expr(:$, :v))))))
+
+# ╔═╡ 84460366-a058-4222-b501-807b9659987c
+expr8 |> eval
+
+# ╔═╡ 89bf0134-2b51-4740-9f66-0d7b8f696ef8
+expr7 == expr8
+
+# ╔═╡ 6b61bf47-178d-408d-b5bd-c234e568c1a3
+expr9 = :($(Expr(:quote, :(ixx = $(Expr(:$, :v))))))
+
+# ╔═╡ b84e8a60-7a6d-40c5-bf2b-5e05a1dcf683
+expr9 |> eval
 
 # ╔═╡ 4614762f-8335-4baf-9168-5fbd468ebbd9
-:( :( x = $($v))) |> dump
+expr9 |> dump
+
+# ╔═╡ f67e8912-1ade-4b38-80a2-8f1bce9783b0
+expr10 = :(:(ixx = $($v)))
+
+# ╔═╡ 82d75dc3-e42f-4c5a-9f2c-00289da034f0
+expr10 |> dump
+
+# ╔═╡ fc0bc04e-273b-4180-b745-91a17c3d0d33
+expr10 |> eval
+
+# ╔═╡ a459e741-5d8f-4cd2-a37d-ace10c4a79be
+expr9 == expr10
+
+# ╔═╡ 52391d9f-6202-4793-bb39-5fd232b4edee
+expr11 = :(:(ixx = $($v)))
+
+# ╔═╡ c6d451d4-de89-4dae-a62a-a3105f877e8f
+expr11 |> eval
+
+# ╔═╡ 516e2516-1512-4367-831a-73d22f6df276
+expr11 |> eval |> eval
 
 # ╔═╡ dbd26569-3180-4a26-80b6-a27da23aac95
 md"
 ---
-##### 3. Summary
+##### 4. Summary
 "
 
 # ╔═╡ a0f7535f-134e-4d06-96fa-47c863890f85
 md"
 ---
-##### 4. References
+##### 5. References
 
+- **Julia-doc**; [*Metaprogramming*](https://docs.julialang.org/en/v1/manual/metaprogramming/); last visit, 2025/07/12
 - **Kwong, T.**; *Hands On Design Patterns and Best Practices*, Birmingham, UK: Packt, 2020
 "
 
@@ -316,16 +368,33 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 ===================================================================================
 "
 
+# ╔═╡ 00000000-0000-0000-0000-000000000001
+PLUTO_PROJECT_TOML_CONTENTS = """
+[deps]
+"""
+
+# ╔═╡ 00000000-0000-0000-0000-000000000002
+PLUTO_MANIFEST_TOML_CONTENTS = """
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.11.6"
+manifest_format = "2.0"
+project_hash = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
+[deps]
+"""
+
 # ╔═╡ Cell order:
 # ╟─237a53e0-490c-11f0-3881-9f6ea28befc9
 # ╟─c1cf13b8-178f-4e28-ad1a-0d279c61d906
+# ╟─54bbddaf-1d90-4c7f-8a2c-91a6c0360391
 # ╟─50b84f7a-c313-4878-a96f-c0c332a028e2
 # ╟─7b4078c0-ca0f-463b-827d-78343bd1d264
 # ╠═47c38ef7-6495-4fe2-b65f-ff154878c4e5
 # ╠═172edec4-efc0-4cf4-9ca2-8583998cfbf5
 # ╟─f2814daf-1b99-4160-a958-a368a8f4bf48
-# ╠═e32faafb-1d2d-44ba-b0ba-de01405f5a80
-# ╠═e308ff0f-8927-420c-8654-ed700a019413
+# ╠═c3ed12cc-0dc8-43b4-a7c7-8f965611a6ec
+# ╠═caf2a878-8b47-40c7-8b63-f45a44f80278
 # ╟─3a30d5c2-e129-44bf-8858-283692e4d6c7
 # ╠═c3870436-b527-41da-bb65-01319fab8e72
 # ╟─d8b029f4-b52a-41d1-b94e-6f001e1a8de1
@@ -338,11 +407,12 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╟─cdc73e9d-aa81-49df-b5ba-5a1d38ac3d83
 # ╠═bfbd9568-ebaa-48b8-8a41-eea9612ffefc
 # ╟─68ef3995-807e-4a42-8478-7ff6582138ed
-# ╠═b9a8299b-05ee-4321-93a1-fa67a5648faf
+# ╠═6cd033c1-26b2-4db0-832e-ba41a2f88482
 # ╠═ae76e5c4-5789-4ed0-b50f-8508a2ec23bf
-# ╠═12ad622a-1e89-4475-8d26-0dc36460b1d4
-# ╠═13faaa9e-9aeb-4b39-b5b1-7bce59989fec
-# ╠═9b265aab-fff5-4244-b72c-14f024052910
+# ╠═cca63715-21f6-4c8a-b2af-2786f60af44e
+# ╠═ffd2c9d8-d4ce-4058-a893-e473305e7219
+# ╠═b9a8299b-05ee-4321-93a1-fa67a5648faf
+# ╠═c691a863-0571-4e20-a3bf-a1316f2d3bb2
 # ╟─b2cdf9b0-f1a3-4141-9d43-8bdbdbe5dc90
 # ╠═d132c53f-bf93-4ec4-86a8-0c8740976ce3
 # ╠═bb45bea8-3d23-422c-91b5-78d324821364
@@ -361,8 +431,6 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╠═03291af7-42dc-4534-9d3a-263a28ce3302
 # ╠═daddcb86-c1ab-4e0b-aa58-f8331a220269
 # ╠═71d53dcb-a737-4fa9-9c81-a1cbc9847e96
-# ╠═b185d8d8-b382-4b8b-abe0-d403eea211fb
-# ╠═3b25635f-9161-4918-9932-a0b21eb3bbd4
 # ╟─500fe009-f723-4033-967e-8f8241dee887
 # ╠═43091207-72c6-4d45-bc84-71cbdc35a81a
 # ╠═8394a35f-3708-4170-8caf-99151edb40e0
@@ -372,11 +440,32 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 # ╟─24dbab33-7206-4dae-89bf-00d80c6a9027
 # ╠═40a30301-8c3c-4718-8f3f-ade681c5baec
 # ╠═56c4fe48-0cc3-4040-8f96-4de05ce051d4
+# ╠═48f7bdcb-55c6-4027-97cd-8afcee645afb
+# ╠═ab3744da-38ad-4e3d-aa81-87f1f9f257a9
 # ╠═58d14af6-7919-4848-b35b-643c936000ff
-# ╠═6e28f2bb-c36d-4e32-9a4a-198ada9202e4
+# ╠═47d1753c-063d-4f30-ac3d-dd074bbd1adb
+# ╠═d673120d-504b-4a18-af3e-6fd5759e3cc0
+# ╠═c844ba5f-7710-4193-bacd-681a03523991
 # ╠═e82770d3-a023-4845-8782-a4dff561ed51
+# ╠═64751382-1f55-4d6b-b91b-bdf6f001cf89
 # ╠═df8d5856-72b9-439e-80b2-fa68717478c0
+# ╠═42c9d00e-c84f-470d-9180-36bc8450b755
+# ╠═e4d02b4e-d597-4278-b552-9f865b1dda21
+# ╠═26eb7da0-6a28-40b8-abed-b86ed16378e1
+# ╠═84460366-a058-4222-b501-807b9659987c
+# ╠═89bf0134-2b51-4740-9f66-0d7b8f696ef8
+# ╠═6b61bf47-178d-408d-b5bd-c234e568c1a3
+# ╠═b84e8a60-7a6d-40c5-bf2b-5e05a1dcf683
 # ╠═4614762f-8335-4baf-9168-5fbd468ebbd9
+# ╠═f67e8912-1ade-4b38-80a2-8f1bce9783b0
+# ╠═82d75dc3-e42f-4c5a-9f2c-00289da034f0
+# ╠═fc0bc04e-273b-4180-b745-91a17c3d0d33
+# ╠═a459e741-5d8f-4cd2-a37d-ace10c4a79be
+# ╠═52391d9f-6202-4793-bb39-5fd232b4edee
+# ╠═c6d451d4-de89-4dae-a62a-a3105f877e8f
+# ╠═516e2516-1512-4367-831a-73d22f6df276
 # ╟─dbd26569-3180-4a26-80b6-a27da23aac95
 # ╟─a0f7535f-134e-4d06-96fa-47c863890f85
 # ╟─b4137e92-ef10-4000-b1a1-b874ae3911e1
+# ╟─00000000-0000-0000-0000-000000000001
+# ╟─00000000-0000-0000-0000-000000000002
