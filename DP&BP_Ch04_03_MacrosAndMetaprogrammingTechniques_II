@@ -267,82 +267,73 @@ md"
 "
 
 # ╔═╡ 40a30301-8c3c-4718-8f3f-ade681c5baec
-:(x = 1 + 2) |> dump
+:(x = 1 + 2) |> dump             # a simple example of a single-level expression
 
 # ╔═╡ 56c4fe48-0cc3-4040-8f96-4de05ce051d4
-:(x = 1 + 2) |> eval
+:(x = 1 + 2) |> eval             # ==> 3 --> :) evaluation of the simple example
 
 # ╔═╡ 48f7bdcb-55c6-4027-97cd-8afcee645afb
-x
+x                                # ==> 3 --> :) evaluation at the global scope
 
 # ╔═╡ ab3744da-38ad-4e3d-aa81-87f1f9f257a9
-expr5 = :( :( x = 1))
+expr5 = :( :( x = 1))            # nested quote block (cf. Kwong, 2020, p.145)
 
 # ╔═╡ 58d14af6-7919-4848-b35b-643c936000ff
 expr5 |> dump
 
 # ╔═╡ 47d1753c-063d-4f30-ac3d-dd074bbd1adb
-expr5 |> eval
+expr5 |> eval                   # ==> :(x = 1) --> :)
 
 # ╔═╡ d673120d-504b-4a18-af3e-6fd5759e3cc0
-expr6 = Expr(Symbol("quote"), Expr(Symbol("="), :x, 1))
+expr6 = Expr(Symbol("quote"), Expr(Symbol("="), :x, 1)) # direct construction
 
 # ╔═╡ c844ba5f-7710-4193-bacd-681a03523991
-expr5 == expr6
+expr5 == expr6                  # ==> true --> :) both are nested quote blocks
 
 # ╔═╡ e82770d3-a023-4845-8782-a4dff561ed51
-v = 3
-
-# ╔═╡ 64751382-1f55-4d6b-b91b-bdf6f001cf89
-x
+v = 3    # interpolation of this assignment in nested quote block (cf. Kwong, p.146)
 
 # ╔═╡ df8d5856-72b9-439e-80b2-fa68717478c0
-expr7 = :( :( ixx = $v))
+expr7 = :( :( ixx = $v))        # nested quote block as target expression
 
 # ╔═╡ 42c9d00e-c84f-470d-9180-36bc8450b755
-expr7 |> dump
+expr7 |> dump                   # dump of target expression expr7
 
 # ╔═╡ e4d02b4e-d597-4278-b552-9f865b1dda21
-expr7 |> eval
+expr7 |> eval                   # value of nested quote block
+
+# ╔═╡ 86e27b9c-31f3-41f0-a8d7-103c62969f65
+expr7 |> eval |> eval           # ==> 3 --> :)  double evaluation
 
 # ╔═╡ 26eb7da0-6a28-40b8-abed-b86ed16378e1
-expr8 = :($(Expr(:quote, :(ixx = $(Expr(:$, :v))))))
+expr8 = :($(Expr(:quote, :(ixx = $(Expr(:$, :v))))))     # direct construction
+
+# ╔═╡ 48070680-2f8d-450a-9e2e-71ba517bd5b3
+expr7 == expr8                  # ==> true --> :)
 
 # ╔═╡ 84460366-a058-4222-b501-807b9659987c
 expr8 |> eval
 
-# ╔═╡ 89bf0134-2b51-4740-9f66-0d7b8f696ef8
-expr7 == expr8
+# ╔═╡ 41338747-71b3-4704-ba00-a4315a2784a3
+expr8 |> eval |> eval          # ==> 3 --> :)  double evaluation
 
-# ╔═╡ 6b61bf47-178d-408d-b5bd-c234e568c1a3
-expr9 = :($(Expr(:quote, :(ixx = $(Expr(:$, :v))))))
-
-# ╔═╡ b84e8a60-7a6d-40c5-bf2b-5e05a1dcf683
-expr9 |> eval
-
-# ╔═╡ 4614762f-8335-4baf-9168-5fbd468ebbd9
-expr9 |> dump
+# ╔═╡ f49b2a13-49f9-4ac8-b0a2-9e837d3ccb2d
+# expr7 = :( :( ixx = $v))        # nested quote block as target expression
 
 # ╔═╡ f67e8912-1ade-4b38-80a2-8f1bce9783b0
-expr10 = :(:(ixx = $($v)))
+expr9 = :(:(ixx = $($v)))      # value 3 interpolated as variable v
 
 # ╔═╡ 82d75dc3-e42f-4c5a-9f2c-00289da034f0
-expr10 |> dump
+expr9 |> dump
 
 # ╔═╡ fc0bc04e-273b-4180-b745-91a17c3d0d33
-expr10 |> eval
+expr9 |> eval
+
+# ╔═╡ 2d798664-6887-4eb2-aece-2cef113509a5
+expr9 |> eval |> eval           # ==> 3 --> :)  double evaluation
 
 # ╔═╡ a459e741-5d8f-4cd2-a37d-ace10c4a79be
-expr9 == expr10
-
-# ╔═╡ 52391d9f-6202-4793-bb39-5fd232b4edee
-expr11 = :(:(ixx = $($v)))
-
-# ╔═╡ c6d451d4-de89-4dae-a62a-a3105f877e8f
-expr11 |> eval
-
-# ╔═╡ 516e2516-1512-4367-831a-73d22f6df276
-expr11 |> eval |> eval
+expr7 == expr9                  # ==> false --> :) 
 
 # ╔═╡ dbd26569-3180-4a26-80b6-a27da23aac95
 md"
@@ -447,23 +438,20 @@ project_hash = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 # ╠═d673120d-504b-4a18-af3e-6fd5759e3cc0
 # ╠═c844ba5f-7710-4193-bacd-681a03523991
 # ╠═e82770d3-a023-4845-8782-a4dff561ed51
-# ╠═64751382-1f55-4d6b-b91b-bdf6f001cf89
 # ╠═df8d5856-72b9-439e-80b2-fa68717478c0
 # ╠═42c9d00e-c84f-470d-9180-36bc8450b755
 # ╠═e4d02b4e-d597-4278-b552-9f865b1dda21
+# ╠═86e27b9c-31f3-41f0-a8d7-103c62969f65
 # ╠═26eb7da0-6a28-40b8-abed-b86ed16378e1
+# ╠═48070680-2f8d-450a-9e2e-71ba517bd5b3
 # ╠═84460366-a058-4222-b501-807b9659987c
-# ╠═89bf0134-2b51-4740-9f66-0d7b8f696ef8
-# ╠═6b61bf47-178d-408d-b5bd-c234e568c1a3
-# ╠═b84e8a60-7a6d-40c5-bf2b-5e05a1dcf683
-# ╠═4614762f-8335-4baf-9168-5fbd468ebbd9
+# ╠═41338747-71b3-4704-ba00-a4315a2784a3
+# ╠═f49b2a13-49f9-4ac8-b0a2-9e837d3ccb2d
 # ╠═f67e8912-1ade-4b38-80a2-8f1bce9783b0
 # ╠═82d75dc3-e42f-4c5a-9f2c-00289da034f0
 # ╠═fc0bc04e-273b-4180-b745-91a17c3d0d33
+# ╠═2d798664-6887-4eb2-aece-2cef113509a5
 # ╠═a459e741-5d8f-4cd2-a37d-ace10c4a79be
-# ╠═52391d9f-6202-4793-bb39-5fd232b4edee
-# ╠═c6d451d4-de89-4dae-a62a-a3105f877e8f
-# ╠═516e2516-1512-4367-831a-73d22f6df276
 # ╟─dbd26569-3180-4a26-80b6-a27da23aac95
 # ╟─a0f7535f-134e-4d06-96fa-47c863890f85
 # ╟─b4137e92-ef10-4000-b1a1-b874ae3911e1
