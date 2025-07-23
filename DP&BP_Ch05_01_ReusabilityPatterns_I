@@ -23,7 +23,7 @@ md"
 ===================================================================================
 #### DP&BP\_Ch05\_01\_Reusability Patterns\_I: The Delegation Pattern
 ##### file: DP&BP\_Ch05\_01\_ReusabilityPatterns\_I
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/22 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/23 ***
 
 ===================================================================================
 "
@@ -101,6 +101,46 @@ md"
 ###### 3.2 The *Delegation* (= *Forwarding*) Pattern as *UML*-Diagrams
 "
 
+# ╔═╡ 2dca8233-66c0-418c-90cd-3a7077a9f94a
+md"
+---
+###### 3.2.1 Black-box *Component* Diagrams
+with square *ports* and arrow-like *degelation*
+"
+
+# ╔═╡ 9fe67929-d4e7-4c1e-bab5-936cf1c5c9ec
+md"
+
+                     +----------------------------------------+
+                     | SavingsAccount (= Delegator)           |
+                     |                                        |
+                     |                                        |
+                     |        +----------------------+        |
+                     |        | Account (= Delegate) |        |
+     deposit!        |      +-+-+                  +-+-+      |         instanceName
+     withdraw! ------------>|   |                  |   |-------------->  balance
+     transfer!       |      +-+-+                  +-+-+      |         bookingDate
+                     |        |                      |        |
+                     |        +----------+-----------+        |
+                     |                   |                    |
+                     |                   o <<delegate>>       |
+     deposit!      +-+-+                / \                 +-+-+       instanceName
+     withdraw! --->|   |                 |                  |   |-------> balance
+    transfer!      +-+-+              deposit!              +-+-+       bookingDate
+                     |                withdraw!               |
+                     |                transfer!               |
+                     |                                        |
+                     +----------------------------------------+
+              
+ **Fig.5.1**: *Delegation* (= *Forwarding*) as *black-box* UML *Component* Diagrams
+"
+
+# ╔═╡ dee25f38-7870-43b5-8a16-4f386fb3f621
+md"
+---
+###### 3.2.2 White-box *Forward* Diagrams
+"
+
 # ╔═╡ 71dff3b3-2115-4cc2-9c97-f8bf8e73facc
 md"
 
@@ -146,7 +186,7 @@ md"
                 +------------------+           +-------------------------------+
 
 
- **Fig.5.1**: *Delegation* (= *Forwarding*) as white-box *UML-Component* Diagrams
+ **Fig.5.2**: *Delegation* (= *Forwarding*) as *white-box* UML Diagrams
 						     
 "					     
 
@@ -1845,6 +1885,9 @@ version = "1.4.1+2"
 # ╟─857744d4-ebaf-4127-a1d2-7769ea7401b5
 # ╟─04e8a5b7-4ed8-4d15-8428-e48e38e48c85
 # ╟─547c655c-ab33-4782-b23d-316c58069683
+# ╟─2dca8233-66c0-418c-90cd-3a7077a9f94a
+# ╟─9fe67929-d4e7-4c1e-bab5-936cf1c5c9ec
+# ╟─dee25f38-7870-43b5-8a16-4f386fb3f621
 # ╟─71dff3b3-2115-4cc2-9c97-f8bf8e73facc
 # ╟─66fc30e2-fb4e-4f84-867b-04ed16388c97
 # ╠═0aa367f0-d8eb-4f4b-8d61-260db79ef53b
