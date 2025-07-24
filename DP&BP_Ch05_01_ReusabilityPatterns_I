@@ -23,7 +23,7 @@ md"
 ===================================================================================
 #### DP&BP\_Ch05\_01\_Reusability Patterns\_I: The Delegation Pattern
 ##### file: DP&BP\_Ch05\_01\_ReusabilityPatterns\_I
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/23 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/24 ***
 
 ===================================================================================
 "
@@ -36,7 +36,7 @@ md"
 
 *Delegation is a pattern that is commonly applied in software engineering. The primary objective is to leverage the capabilities of an existing component by wrapping it via a has-a relationship.* (Kwong, 2020, p.20, p.171)
 
-Because we use the *reactivity* of Pluto's notebook *cells* we have to be careful with *mutable* variables like $balance$. One method recommended is using *services* of package [*Observables*](https://juliagizmos.github.io/Observables.jl/stable/): e.g.: $Observable(.)$.
+Because we use the *reactivity* of Pluto's notebook *cells* we have to be careful with *mutable* variables like $balance$. One recommendation is using *services* of package [*Observables*](https://juliagizmos.github.io/Observables.jl/stable/): e.g.: $Observable(.)$.
 
 "
 
@@ -101,6 +101,14 @@ md"
 ###### 3.2 The *Delegation* (= *Forwarding*) Pattern as *UML*-Diagrams
 "
 
+# ╔═╡ e935db07-fcff-45c9-9359-f8dbadd4c15a
+md"
+As a *first* sketch of the code we have a *top-down* view with an UML-like *component* diagram (**Fig. 5.1**). The basic service which has to be untouched is provided by the $Delegate$ (= $Account$). 
+Further services like $interestProfit!$ have to be provide by the $Delegator$ (= $SavingsAccount$). $Delegator$ degelates *basic* orders (deposit!, withdraw!, transfer!) to $Delegate$, whereas *extra* orders (e.g. $interestProfit!$) are left to $Delegator$. 
+
+The $Delegate$ is a (*pseudo*)-component of $Delegator$ (*dotted* lines in **Fig. 5.1**). This means that $Delegate$ is *physically* *outside* but by *links* it *seems* to be *inside* $Delegator$. In Julia code this is accomplished by the *inner* constructor of $Delegator$.
+"
+
 # ╔═╡ 2dca8233-66c0-418c-90cd-3a7077a9f94a
 md"
 ---
@@ -111,26 +119,35 @@ with square *ports* and arrow-like *degelation*
 # ╔═╡ 9fe67929-d4e7-4c1e-bab5-936cf1c5c9ec
 md"
 
-                     +----------------------------------------+
-                     | SavingsAccount (= Delegator)           |
-                     |                                        |
-                     |                                        |
-                     |        +----------------------+        |
-                     |        | Account (= Delegate) |        |
-     deposit!        |      +-+-+                  +-+-+      |         instanceName
-     withdraw! ------------>|   |                  |   |-------------->  balance
-     transfer!       |      +-+-+                  +-+-+      |         bookingDate
-                     |        |                      |        |
-                     |        +----------+-----------+        |
-                     |                   |                    |
-                     |                   o <<delegate>>       |
-     deposit!      +-+-+                / \                 +-+-+       instanceName
-     withdraw! --->|   |                 |                  |   |-------> balance
-    transfer!      +-+-+              deposit!              +-+-+       bookingDate
-                     |                withdraw!               |
-                     |                transfer!               |
-                     |                                        |
-                     +----------------------------------------+
+                                 +-----------------+             
+                                 | Account         |
+                                 |  (= Delegate)   |
+    deposit!                   +-+-+             +-+-+              instanceName
+    withdraw! ---------------->|   |             |   |-------------> balance
+    transfer!                  +-+-+             +-+-+              bookingDate
+                                 |                 |   
+                                 +--------+--------+   
+
+
+                    +-------------------------------------------+
+                    | SavingsAccount (= Delegator)              |
+                    |                                           |
+                    |                                           |
+                    |            +.................+            |
+                    |            : Account         :            |
+                    |            :  (= Delegate)   :            |
+                    |          +.+.+             +.+.+          |         
+                    |     +--->:   :             :   :--->+     |
+                    |     |    +.+.+             +.+.+    |     |         
+                    |     |      :                 :      |     |
+                    |     |      +........+........+      |     |
+                    |     |               o               |     |
+                    |     |              / \              |     |
+    deposit!      +-+-+   |               | <<delegate>>  |   +-+-+   instanceName
+    withdraw! --->|   |-->+               |               +-->|   |---> balance
+    transfer!     +-+-+                   o                   +-+-+   bookingDate
+    interestProfit! |                                           |     interestIncome
+                    +-------------------------------------------+
               
  **Fig.5.1**: *Delegation* (= *Forwarding*) as *black-box* UML *Component* Diagrams
 "
@@ -1885,6 +1902,7 @@ version = "1.4.1+2"
 # ╟─857744d4-ebaf-4127-a1d2-7769ea7401b5
 # ╟─04e8a5b7-4ed8-4d15-8428-e48e38e48c85
 # ╟─547c655c-ab33-4782-b23d-316c58069683
+# ╟─e935db07-fcff-45c9-9359-f8dbadd4c15a
 # ╟─2dca8233-66c0-418c-90cd-3a7077a9f94a
 # ╟─9fe67929-d4e7-4c1e-bab5-936cf1c5c9ec
 # ╟─dee25f38-7870-43b5-8a16-4f386fb3f621
