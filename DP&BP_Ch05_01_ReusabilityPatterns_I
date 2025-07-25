@@ -475,13 +475,6 @@ function transfer!(fromInstanceAccount::Delegator, toInstanceAccount::Delegator,
 	amount
 end # function transfer!
 
-# ╔═╡ 38e636c4-eb9a-4129-83f0-cb0e909f85b2
-function transferInterestIncome!(fromInstanceAccount, toInstanceAccount::Delegator, amount::Real) 
-	withdrawInterestIncome!(fromInstanceAccount, amount)
-	deposit!(toInstanceAccount, amount)
-	amount
-end # function transferInterestIncome!
-
 # ╔═╡ 29932ad2-34ef-479f-be57-cefe7f8bff5c
 function transfer!(fromInstanceAccount::Delegator, toInstanceAccount::Delegate, amount::Real) 
 	withdraw!(fromInstanceAccount, amount)
@@ -495,6 +488,14 @@ function transfer!(fromInstanceAccount::Delegate, toInstanceAccount::Delegator, 
 	deposit!(toInstanceAccount, amount)
 	amount
 end # function transfer!
+
+# ╔═╡ 38e636c4-eb9a-4129-83f0-cb0e909f85b2
+function transferInterestIncome!(
+	fromInstanceAccount::Delegator, toInstanceAccount::Delegator, amount::Real) 
+	withdrawInterestIncome!(fromInstanceAccount, amount)
+	deposit!(toInstanceAccount, amount)
+	amount
+end # function transferInterestIncome!
 
 # ╔═╡ e35a0c0d-01af-400d-a6d0-4b89e15cd634
 mySavingsAccount_PCM_1705.delegateInstance.balance[]     # ==> 200.00 --> :)
@@ -578,13 +579,13 @@ mySavingsAccount_PCM_1706.delegateInstance.bookingDate
 
 # ╔═╡ ca969ed8-eca5-4620-a415-f48a9eb19eb3
 interestProfit!(mySavingsAccount_PCM_1705)  
-                        # ==> (200.0 * 0.05) / 365 ==> 0.0273972602739726 --> :)
+                             # ==> (200.0 * 0.05) / 365 ==> 0.0273972602739726 --> :)
 
 # ╔═╡ d873eae1-b935-41b9-a1a6-6571dc80c988
 mySavingsAccount_PCM_1705.interestIncome[]           # ==> 0.0273972602739726 --> :)
 
 # ╔═╡ 0e48b6ef-68b9-445a-9ec1-5f6fb4c9115b
-mySavingsAccount_PCM_1705.delegateInstance.balance[]       # ==> 200.00 --> :)
+mySavingsAccount_PCM_1705.delegateInstance.balance[] # ==> 200.00 --> :)
 
 # ╔═╡ 158141b6-c8a6-438e-a40b-427f2aa79830
 transferInterestIncome!(mySavingsAccount_PCM_1705, mySavingsAccount_PCM_1706, 0.0273972602739726)                                  # ==> 0.0273972602739726 --> :)
@@ -620,7 +621,7 @@ mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --
 136.98667667479828 + 10000.027397260274 == 10137.014073935072
 
 # ╔═╡ 18451021-c108-4b10-9c5e-657cf2628614
-mySavingsAccount_PCM_1706.interestIncome[]           # ==> 136.98667667479828 --> :)
+mySavingsAccount_PCM_1706.interestIncome[]           # ==> 0.00 --> :)
 
 # ╔═╡ 44096a6b-b1b6-4137-af5d-ce7dafe28b2d
 mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --> :)
@@ -1958,9 +1959,9 @@ version = "1.4.1+2"
 # ╠═c4e6e588-1fc0-4787-8557-0b1b538cbc88
 # ╠═41753eb1-a59e-43b2-8d78-3980d5d20db8
 # ╠═e70d161c-bee6-4a80-a43e-650156309624
-# ╠═38e636c4-eb9a-4129-83f0-cb0e909f85b2
 # ╠═29932ad2-34ef-479f-be57-cefe7f8bff5c
 # ╠═1553c14a-b3c4-4de8-8dea-7846ef89b828
+# ╠═38e636c4-eb9a-4129-83f0-cb0e909f85b2
 # ╠═e35a0c0d-01af-400d-a6d0-4b89e15cd634
 # ╠═06f000bb-00f8-4976-81bd-98e561fb3483
 # ╠═2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
