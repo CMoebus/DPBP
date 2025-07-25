@@ -23,7 +23,7 @@ md"
 ===================================================================================
 #### DP&BP\_Ch05\_01\_Reusability Patterns\_I: The Delegation Pattern
 ##### file: DP&BP\_Ch05\_01\_ReusabilityPatterns\_I
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/24 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/25 ***
 
 ===================================================================================
 "
@@ -500,7 +500,7 @@ end # function transfer!
 mySavingsAccount_PCM_1705.delegateInstance.balance[]     # ==> 200.00 --> :)
 
 # ╔═╡ 06f000bb-00f8-4976-81bd-98e561fb3483
-supertype(Delegator), supertype(Delegate)   # not a is-a relation !
+supertype(Delegator), supertype(Delegate)                # not a is-a relation !
 
 # ╔═╡ 2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
 typeof(mySavingsAccount_PCM_1705)
@@ -578,7 +578,7 @@ mySavingsAccount_PCM_1706.delegateInstance.bookingDate
 
 # ╔═╡ ca969ed8-eca5-4620-a415-f48a9eb19eb3
 interestProfit!(mySavingsAccount_PCM_1705)  
-# ==> (200.0 * 0.05) / 365 ==> 0.0273972602739726 --> :)
+                        # ==> (200.0 * 0.05) / 365 ==> 0.0273972602739726 --> :)
 
 # ╔═╡ d873eae1-b935-41b9-a1a6-6571dc80c988
 mySavingsAccount_PCM_1705.interestIncome[]           # ==> 0.0273972602739726 --> :)
@@ -587,7 +587,7 @@ mySavingsAccount_PCM_1705.interestIncome[]           # ==> 0.0273972602739726 --
 mySavingsAccount_PCM_1705.delegateInstance.balance[]       # ==> 200.00 --> :)
 
 # ╔═╡ 158141b6-c8a6-438e-a40b-427f2aa79830
-transferInterestIncome!(mySavingsAccount_PCM_1705, mySavingsAccount_PCM_1706, 0.0273972602739726)
+transferInterestIncome!(mySavingsAccount_PCM_1705, mySavingsAccount_PCM_1706, 0.0273972602739726)                                  # ==> 0.0273972602739726 --> :)
 
 # ╔═╡ 62d035dd-2874-4a26-81d8-995df8cb8998
 balance(mySavingsAccount_PCM_1705) * 0.05 / 365      # ==> 0.0273972602739726 --> :)
@@ -615,7 +615,6 @@ transferInterestIncome!(mySavingsAccount_PCM_1706, mySavingsAccount_PCM_1706, 13
 
 # ╔═╡ aa171e16-1de7-4951-aca1-7a5d345cedcf
 mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --> :)
-# 136.98667667479828
 
 # ╔═╡ 1ca80b7c-5136-487a-a447-d89bc416d813
 136.98667667479828 + 10000.027397260274 == 10137.014073935072
