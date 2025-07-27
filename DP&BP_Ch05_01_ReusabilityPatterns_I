@@ -23,7 +23,7 @@ md"
 ===================================================================================
 #### DP&BP\_Ch05\_01\_Reusability Patterns\_I: The Delegation Pattern
 ##### file: DP&BP\_Ch05\_01\_ReusabilityPatterns\_I
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/25 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/27 ***
 
 ===================================================================================
 "
@@ -44,13 +44,13 @@ Because we use the *reactivity* of Pluto's notebook *cells* we have to be carefu
 md"
 ---
 ##### 1. Topics
-- delegation pattern
+- *delegation* (*forward*, *composition*, *wrapper*) pattern
 - *has-a* vs. *is-a* relationship
-- *composition* vs. inheritance
-- delegate, delegator type
-- delegate connector
+- *composition* vs. *inheritance*
+- *delegate* vs. *delegator* type
+- delegate (*ball-and-socket*) *connector*
 - UML
-- type objects
+- *type* objects
 - *outer* constructors
 - *inner* constructors
 - *mutation* in $Pluto$ notebooks by $Observables$ and $Observable$
@@ -82,7 +82,7 @@ $Bank\ Domain \Rightarrow UML \Rightarrow Colloquial\ Language$
 $-----------------------$
 $Types:$ 
 $Account \Rightarrow Delegate \Rightarrow Receiver$
-$SavingsAccount \Rightarrow Delegator \Rightarrow Sender$
+$SavingsAccount \Rightarrow Delegator \Rightarrow Sender\ (Wrapper)$
 $-----------------------$
 $Instances:$ 
 $myAccount\_PCM\_1704 \Rightarrow myDelegateAccount\_PCM\_1704$
@@ -103,10 +103,11 @@ md"
 
 # ╔═╡ e935db07-fcff-45c9-9359-f8dbadd4c15a
 md"
-As a *first* sketch of the code we have a *top-down* view with an UML-like *component* diagram (**Fig. 5.1**). The basic service which has to be untouched is provided by the $Delegate$ (= $Account$). 
-Further services like $interestProfit!$ have to be provide by the $Delegator$ (= $SavingsAccount$). $Delegator$ degelates *basic* orders (deposit!, withdraw!, transfer!) to $Delegate$, whereas *extra* orders (e.g. $interestProfit!$) are left to $Delegator$. 
+As a *first* sketch of the code we have a *top-down* view with an UML-like *component* diagram (**Fig. 5.1**). The *basic* service which has to be left untouched is provided by the $Delegate$ (= $Account$). 
 
-The $Delegate$ is a (*pseudo*)-component of $Delegator$ (*dotted* lines in **Fig. 5.1**). This means that $Delegate$ is *physically* *outside* but by *links* it *seems* to be *inside* $Delegator$. In Julia code this is accomplished by the *inner* constructor of $Delegator$.
+*Extra* services like $interestProfit!$ have to be provide by the $Delegator$ or $Wrapper$ (= $SavingsAccount$). $Delegator$ degelates *basic* orders ($deposit!, withdraw!, transfer!$) to $Delegate$, whereas *extra* orders (e.g. $interestProfit!$) are sent to $Delegator$. 
+
+The $Delegate$ is a (*pseudo*)-component of $Delegator$ (*dotted* lines in **Fig. 5.1**). This means that $Delegate$ is *physically* located *outside* but by *links* seemingly *inside* $Delegator$. In Julia code this is accomplished by the *inner* constructor of $Delegator$.
 "
 
 # ╔═╡ 2dca8233-66c0-418c-90cd-3a7077a9f94a
@@ -122,7 +123,7 @@ md"
                                  +-----------------+             
                                  | Account         |
                                  |  (= Delegate)   |
-    deposit!                   +-+-+             +-+-+              instanceName
+    deposit!                   +-+-+             +-+-+              accountID
     withdraw! ---------------->|   |             |   |-------------> balance
     transfer!                  +-+-+             +-+-+              bookingDate
                                  |                 |   
@@ -142,11 +143,13 @@ md"
                     |     |      :                 :      |     |
                     |     |      +........+........+      |     |
                     |     |               o               |     |
-                    |     |              / \              |     |
-    deposit!      +-+-+   |               | <<delegate>>  |   +-+-+   instanceName
+                    |     |              / \              |     |     
+    deposit!      +-+-+   |               | <<delegate>>  |   +-+-+   accountID
     withdraw! --->|   |-->+               |               +-->|   |---> balance
-    transfer!     +-+-+                   o                   +-+-+   bookingDate
-    interestProfit! |                                           |     interestIncome
+    transfer!     +-+-+   |               o               ^   +-+-+   bookingDate
+    ............... |     v                               |     |     ..............
+    interestProfit! |     +--------------->-------------->+     |     interestIncome
+                    |                                           |
                     +-------------------------------------------+
               
  **Fig.5.1**: *Delegation* (= *Forwarding*) as *black-box* UML *Component* Diagrams
@@ -168,7 +171,7 @@ md"
                 |   **Delegate**    |          |          **Account**          |
                 |    (= parent)     |          |                               |
 				+...................+          +...............................+
-                |    attribute 1    |          |         accountNumber         |
+                |    attribute 1    |          |           accountID           |
 				|        ...        |          |            balance            |
                 |    attribute j    |          |          bookingDate          |
                 +...................+          +...............................+
@@ -188,11 +191,11 @@ md"
                 |   **Delegator**  |           |       **SavingsAccount**      |
 				|     (= child)    |           |                               |
                 +..................+           +...............................+
-                |   attribute 1    |           |          accountNumber        |
+                |   attribute 1    |           |            accountID          |
 				|       ...        |           |             balance           |
                 |       ...        |           |           bookingDate         |
                 |..................|           |...............................|
-                |   attribute l    |           |          interestGain         |    
+                |   attribute l    |           |         interestIncome        |    
 				+..................+           +...............................+
                 |     method 1     |           |   deposit!(...::..., amount)  |
                 |       ...        |           | withdraw!(account::Delegator  |    
@@ -229,18 +232,18 @@ typeof((100.0, Dates.now()))
 # ╔═╡ c84ecf5a-a485-4690-bbef-623d378c038c
 mutable struct Delegate
 	accountID::String
-	balance::Observable{Float64}          # for automatic reactivity in Pluto
-	bookingDate::DateTime                 # each booking gets a time stamp
+	balance::Observable{Float64}       # Observable for automatic reactivity in Pluto
+	bookingDate::DateTime              # each booking gets a time stamp
 end # mutable struct Delegate
 
 # ╔═╡ 4c4e4ef0-247a-4603-96b2-2f4fc83f81d8
 typeof(Delegate)
 
 # ╔═╡ df7db8e4-21d1-4674-90db-eabd17e0c078
-Account = Delegate                        # alias
+Account = Delegate                     # alias
 
 # ╔═╡ 0d2420a4-66a0-408c-842d-becff8ffa093
-myAccount_PCM_1704 =                      # creation of instance of Delegate 
+myAccount_PCM_1704 =                   # instance of Delegate 
 	Delegate("PCM_1704", Observable(100.87), Dates.now())
             #                   ^-------- for automatic reactivity in Pluto
 
@@ -253,18 +256,18 @@ md"
 
 # ╔═╡ 03b2f5a1-9b53-4e92-b8cc-7666cb80c876
 md"
-###### *Function* Accessors of Delegate Instances
+###### *Accessor* Functions towards *Fields* of $Delegate$ Instances
 "
 
 # ╔═╡ 28aebb79-1627-4c54-a2ce-d8bcbe83e14f
 begin  # definition of accessor functions
 	accountID(instanceAccount::Delegate) = 
-		instanceAccount.accountID::String
+		instanceAccount.accountID::String     # access towards field *accountID*
 	balance(instanceAccount::Delegate) = 
-		instanceAccount.balance[]
-	                #          ^-------- for automatic reactivity in Pluto
+		instanceAccount.balance[]             # access towards field *balance*
+	                #          ^--------------- for automatic reactivity in Pluto
 	bookingDate(instanceAccount::Delegate) =
-		instanceAccount.bookingDate::DateTime
+		instanceAccount.bookingDate::DateTime # access towards field *bookingDate*
 end # begin
 
 # ╔═╡ 21aa78c9-41a8-48c5-a0bf-f35e5937ffe9
@@ -337,7 +340,7 @@ mutable struct Delegator  # mutable because interestIncome can change
 	function Delegator(
 		accountID, balance, bookingDate, interestRate, interestIncome)
 		#--------------------------------------------------------------------
-		# generate a delegate
+		# generate a delegate instance (object)
 		delegateInstance = Delegate(accountID, balance, bookingDate)
 		#--------------------------------------------------------------------
 		# function call *new*
@@ -396,13 +399,13 @@ begin
 end # begin
 
 # ╔═╡ f0130556-a085-4e27-87fa-8c845b45385a
-accountID(myAccount_PCM_1704)                       # function access
+accountID(myAccount_PCM_1704)                       # functional access
 
 # ╔═╡ 04612ddf-e2be-45b0-851b-0e67bf9050ee
 balance(myAccount_PCM_1704)[]                       # ==> 100.87 -->  :)
 
 # ╔═╡ a3170255-09b8-4747-84a7-8ed6b5a6a523
-bookingDate(myAccount_PCM_1704)                     # function access
+bookingDate(myAccount_PCM_1704)                     # functional access
 
 # ╔═╡ 481b2468-c486-4fef-8034-1a03ee8d016b
 accountID(myDelegatorAccount_PCM_1705)
