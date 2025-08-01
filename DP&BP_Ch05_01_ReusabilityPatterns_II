@@ -10,14 +10,14 @@ begin
 	using Plots
 	using Dates
 	using Observables
-	using Lazy
-	#-----------------------------------------------------------------
-	println("pkgversion(Pluto)         = ", pkgversion(Pluto))
-	println("pkgversion(Plots)         = ", pkgversion(Plots))
-	println("pkgversion(Dates)         = ", pkgversion(Dates))
-	println("pkgversion(Observables)   = ", pkgversion(Observables))
-	println("pkgversion(Lazy)          = ", pkgversion(Lazy))
-	#-----------------------------------------------------------------
+	using ForwardMethods
+	#--------------------------------------------------------------------
+	println("pkgversion(Pluto)          = ", pkgversion(Pluto))
+	println("pkgversion(Plots)          = ", pkgversion(Plots))
+	println("pkgversion(Dates)          = ", pkgversion(Dates))
+	println("pkgversion(Observables)    = ", pkgversion(Observables))
+	println("pkgversion(ForwardMethods) = ", pkgversion(ForwardMethods))
+	#--------------------------------------------------------------------
 end # begin
 
 # ╔═╡ 8bd60d10-632b-11f0-0d66-d3f7afa4728b
@@ -26,7 +26,7 @@ md"
 #### DP&BP\_Ch05\_01\_Reusability Patterns\_II: The Delegation Pattern
 ##### Reducing Boilerplate Code for Forwarding Methods (cf. Kwong, 2020, p.175f)
 ##### file: DP&BP\_Ch05\_01\_ReusabilityPatterns\_II
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/07/26 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/08/01 ***
 
 ===================================================================================
 "
@@ -35,18 +35,7 @@ md"
 md"
 ---
 ##### 0. Introduction
-Here we follow Kwong's recommendation to replace the *forwarded* attributes ($accountID, balance, bookingDate$) and *forwarded* methods ($deposit!, withdraw!$) by *calls* of *macro* $Lazy.@forward$. We embed the two calls: 
-
-$Lazy.@forward\ \ Delegator.delegateInstance\ \ accountID, balance, bookingDate$
-$Lazy.@forward\ \ Delegator.delegateInstance\ \ deposit!, withdraw!$
-
-in the code so that we get the same results as before in *DP&BP\_Ch05\_01\_Reusability Patterns\_I: The Delegation Pattern*.
-
-The use of *macro* $Lazy.@forward$ makes the *definition* of 
-- *forward accessors* and
-- *forward methods*
-
-superfluous. So we embedded these code snippets by $\#=, =\#$-pairs.
+Instead of following Kwong's advice to replace the *forwarded* functions ($accountID, balance, bookingDate, deposit!, withdraw!$) by *calls* of *macro* $Lazy.@forward$ we use the better documented *macro* $ForwardMethods.@forward\_methods$. 
 
 "
 
@@ -55,7 +44,7 @@ md"
 ---
 ##### 1. Topics
 
-- *macro* [*Lazy.@forward*](https://github.com/MikeInnes/Lazy.jl/blob/master/src/macros.jl); here you find the *documentation* and *application examples*
+- *macro* [*ForwardMethods.@forward_methods*](https://github.com/curtd/ForwardMethods.jl/blob/main/README.md); here you find the *documentation* and *application examples*
 
 "
 
@@ -77,39 +66,70 @@ md"
 # ╔═╡ 04e8a5b7-4ed8-4d15-8428-e48e38e48c85
 md"
 ---
-###### 3.1 Aliases
-Here we translate Kwong's *concrete* example orientated terminology into a more *abstract* one:
-
-$Bank\ Domain \Rightarrow UML \Rightarrow Colloquial\ Language$
-
-$-----------------------$
-$Types:$ 
-$Account \Rightarrow Delegate \Rightarrow Receiver$
-$SavingsAccount \Rightarrow Delegator \Rightarrow Sender, Wrapper$
-$-----------------------$
-$Instances:$ 
-$myAccount\_PCM\_1704 \Rightarrow myDelegateAccount\_PCM\_1704$
-$\Rightarrow  myReceiverInstance\_PCM\_1704$
-$mySavingsAccount\_PCM\_1705 \Rightarrow myDelegatorAccount\_PCM\_1705$ 
-$\Rightarrow mySenderInstance\_PCM\_1705$
-$mySavingsAccount\_PCM\_1706 \Rightarrow myDelegatorAccount\_PCM\_1706$ 
-$\Rightarrow mySenderInstance\_PCM\_1706$
-$-----------------------$
+###### 3.1 *Macro* $ForwardMethods.@forward\_methods$
+First we present an introduction to its *interface* by a small example.
 
 "
+
+# ╔═╡ 232e4c4f-ea43-4e39-8f91-b63c63e80bc5
+md"
+###### Example: *Calls* of *macro* $ForwardMethods.@forward\_methods$
+We have a *type* $Wrapper$ with two *fields* and an *instance* $exWrap$ of $Wrapper$.
+Then we forward function $sqrt$ to *field* $x$ and functions $length, prod$ to field $y$.
+"
+
+# ╔═╡ df97ca4e-21e2-46cb-a1b7-84843a05853c
+#-------------------------------------------------------------
+struct Wrapper
+	x::Float64
+	y::Vector{Int}
+end # end struct
+#-------------------------------------------------------------
+
+# ╔═╡ 6d4f97c2-5d6c-4ae7-b391-7f75a7e60530
+ begin # functions $sqrt, length, prod$ are forwarded
+	@forward_methods Wrapper field=x Base.sqrt
+ 	@forward_methods Wrapper field=y Base.length Base.prod
+ end # begin
+
+# ╔═╡ be2ab5e6-4e62-4740-9713-76b2c89ead7f
+md"
+---
+###### Example: Application of *forwarded* functions to *instance* of *type*
+"
+
+# ╔═╡ de5ad422-bef8-4a61-822d-8a3199eaf8ce
+#-----------------------------------------------------------------
+exWrap = Wrapper(4.0, [1, 4, 9])	        # instance of Wrapper
+#-----------------------------------------------------------------
+
+# ╔═╡ 4561ca94-933b-43b7-af47-25de73678d47
+exWrap.x                                    # ==> 4.0 --> :)
+
+# ╔═╡ e2ccf186-2255-4f8d-8d84-95545462b3cd
+sqrt(exWrap.x)                              # ==> 2.0 --> :)
+
+# ╔═╡ c5e69f36-fdae-4895-9a39-624f1b9192e9
+exWrap.x |> sqrt                            # ==> 2.0 --> :)
+
+# ╔═╡ 869a9499-ea56-4808-8f5a-538eda91ef65
+exWrap.y                                    # ==> [1, 4, 9]
+
+# ╔═╡ 390502a9-e196-4a63-9888-d3fe51964a05
+exWrap.y |> length                          # ==> 3 --> :)
+
+# ╔═╡ c39eee83-422a-4682-96d5-ab797f80f09b
+exWrap.y |> vector -> prod(x -> x, vector)  # ==> 36 --> :)
 
 # ╔═╡ 547c655c-ab33-4782-b23d-316c58069683
 md"
 ---
 ###### 3.2 The *Delegation* (= *Forwarding*) Pattern as *UML*-Diagrams
-"
+As a *first* sketch of the code we have a *top-down* view with an UML-like *component* diagram (**Fig. 5.1**). The *basic* service which has to be left untouched is provided by the $Delegate$ (= $Account$). 
 
-# ╔═╡ e935db07-fcff-45c9-9359-f8dbadd4c15a
-md"
-As a *first* sketch of the code we have a *top-down* view with an UML-like *component* diagram (**Fig. 5.1**). The basic service which has to be untouched is provided by the $Delegate$ (= $Account$). 
-Further services like $interestProfit!$ have to be provide by the $Delegator$ (= $SavingsAccount$). $Delegator$ degelates *basic* orders (deposit!, withdraw!, transfer!) to $Delegate$, whereas *extra* orders (e.g. $interestProfit!$) are left to $Delegator$. 
+*Extra* services like $interestProfit!$ have to be provide by the $Delegator$ or $Wrapper$ (= $SavingsAccount$). $Delegator$ degelates *basic* orders ($deposit!, withdraw!, transfer!$) to $Delegate$, whereas *extra* orders (e.g. $interestProfit!$) are sent to $Delegator$. 
 
-The $Delegate$ is a (*pseudo*)-component of $Delegator$ (*dotted* lines in **Fig. 5.1**). This means that $Delegate$ is *physically* *outside* but by *links* it *seems* to be *inside* $Delegator$. In Julia code this is accomplished by the *inner* constructor of $Delegator$.
+The $Delegate$ is a (*pseudo*)-component of $Delegator$ (*dotted* lines in **Fig. 5.1**). This means that $Delegate$ is *physically* located *outside* but by *links* seemingly *inside* $Delegator$. In Julia code this is accomplished by the *inner* constructor of $Delegator$.
 "
 
 # ╔═╡ 2dca8233-66c0-418c-90cd-3a7077a9f94a
@@ -125,7 +145,7 @@ md"
                                  +-----------------+             
                                  | Account         |
                                  |  (= Delegate)   |
-    deposit!                   +-+-+             +-+-+              instanceName
+    deposit!                   +-+-+             +-+-+              accountID
     withdraw! ---------------->|   |             |   |-------------> balance
     transfer!                  +-+-+             +-+-+              bookingDate
                                  |                 |   
@@ -145,11 +165,13 @@ md"
                     |     |      :                 :      |     |
                     |     |      +........+........+      |     |
                     |     |               o               |     |
-                    |     |              / \              |     |
-    deposit!      +-+-+   |               | <<delegate>>  |   +-+-+   instanceName
+                    |     |              / \              |     |     
+    deposit!      +-+-+   |               | <<delegate>>  |   +-+-+   accountID
     withdraw! --->|   |-->+               |               +-->|   |---> balance
-    transfer!     +-+-+                   o                   +-+-+   bookingDate
-    interestProfit! |                                           |     interestIncome
+    transfer!     +-+-+   |               o               ^   +-+-+   bookingDate
+    ............... |     v                               |     |     ..............
+    interestProfit! |     +--------------->-------------->+     |     interestIncome
+                    |                                           |
                     +-------------------------------------------+
               
  **Fig.5.1**: *Delegation* (= *Forwarding*) as *black-box* UML *Component* Diagrams
@@ -171,7 +193,7 @@ md"
                 |   **Delegate**    |          |          **Account**          |
                 |    (= parent)     |          |                               |
 				+...................+          +...............................+
-                |    attribute 1    |          |         accountNumber         |
+                |    attribute 1    |          |           accountID           |
 				|        ...        |          |            balance            |
                 |    attribute j    |          |          bookingDate          |
                 +...................+          +...............................+
@@ -191,11 +213,11 @@ md"
                 |   **Delegator**  |           |       **SavingsAccount**      |
 				|     (= child)    |           |                               |
                 +..................+           +...............................+
-                |   attribute 1    |           |          accountNumber        |
+                |   attribute 1    |           |            accountID          |
 				|       ...        |           |             balance           |
                 |       ...        |           |           bookingDate         |
                 |..................|           |...............................|
-                |   attribute l    |           |          interestGain         |    
+                |   attribute l    |           |         interestIncome        |    
 				+..................+           +...............................+
                 |     method 1     |           |   deposit!(...::..., amount)  |
                 |       ...        |           | withdraw!(account::Delegator  |    
@@ -220,15 +242,6 @@ md"
 (= *Receiver* Data Type = *OO-Class* without Methods)
 "
 
-# ╔═╡ 0aa367f0-d8eb-4f4b-8d61-260db79ef53b
-Dates.now()
-
-# ╔═╡ b161f880-af30-4d1c-b4d7-fc671ddba7e8
-typeof(Dates.now())
-
-# ╔═╡ ac0f9574-826e-44f2-80f1-a6468f83922a
-typeof((100.0, Dates.now()))
-
 # ╔═╡ c84ecf5a-a485-4690-bbef-623d378c038c
 mutable struct Delegate
 	accountID::String
@@ -237,7 +250,7 @@ mutable struct Delegate
 end # mutable struct Delegate
 
 # ╔═╡ 4c4e4ef0-247a-4603-96b2-2f4fc83f81d8
-typeof(Delegate)
+typeof(Delegate)                          # ==> DataType --> :)
 
 # ╔═╡ df7db8e4-21d1-4674-90db-eabd17e0c078
 Account = Delegate                        # alias
@@ -277,7 +290,7 @@ md"
 "
 
 # ╔═╡ 9203ae3e-7e98-46ac-9bd8-8842ed5b8e5a
-myAccount_PCM_1704.accountID::String                # field access
+myAccount_PCM_1704.accountID::String                # ==> "PCM_1704" --> :)
 
 # ╔═╡ 003399f5-0663-4c49-b35e-e2c2b3656528
 myAccount_PCM_1704.balance[]                        # ==> 100.87 -->  :)
@@ -307,7 +320,10 @@ function withdraw!(instanceAccount::Delegate, amount::Real)
 end # function withdraw!
 
 # ╔═╡ 1f79367f-17ef-40ff-87f1-6d0d8d8775d1
-myAccount_PCM_1704.balance[], myAccount_PCM_1704.bookingDate
+myAccount_PCM_1704.balance[]                     # ==> 200 --> :)
+
+# ╔═╡ add48cac-9e6a-4e1c-aac4-a89a9a32cec6
+myAccount_PCM_1704.bookingDate                   
 
 # ╔═╡ b1093d93-b7b4-4278-8211-cdbefbe21a31
 md"
@@ -320,10 +336,9 @@ Embracing an *Existing* Type (*Delegate* = *Receiver* of Message)
 ###### 3.4.1 *Delegator* Data Type (= *Child* Data Type)
 (= Class without Methods) 
 
-- The *inner* constructor has as a head a function definition with *any* number and types of parameters, but
-- a *new* function call with arguments which *must* be *identical* 
+- *first*, the *inner* constructor has as a head a function *definition* with *any* number and types of parameters, but
+- *second*, a *new* function *call* with arguments which *must* be *identical* 
   in type, number and order to fields of *outer* constructor
-
 "
 
 # ╔═╡ d4451a53-b8df-4a67-a0fe-877a93a017c5
@@ -384,15 +399,9 @@ myDelegatorAccount_PCM_1706.delegateInstance.balance[]        # ==> 10000.00 -->
 # ╔═╡ f1df0d52-5599-49cc-be91-652d7244a605
 md"
 ---
-###### 3.4.2 *Delegator* Selectors: Forward Accessors
-(cf. Kwong, 2020, p.174)
-"
-
-# ╔═╡ f27b457e-83e3-492a-8177-42bbdf2caa68
-md"
----
-> Lazy.@forward Delegator.delegateInstance accountID, balance, bookingDate
----
+###### 3.4.2 *Delegator* Selectors: Forward Accessors by Applying *Macro* $ForwardMethods.@forward\_methods$
+These *forward* a accessors have become *superfluous* by introduction of the *macro* $forward_methods$
+(cf. Kwong, 2020, p.175)
 "
 
 # ╔═╡ 35e2021c-a48e-4066-9529-e219e0804c9e
@@ -407,45 +416,41 @@ begin
 end # begin
 =#
 
-# ╔═╡ 659f59e7-ef24-494b-bf84-61e9b384a23b
-Lazy.@forward Delegator.delegateInstance accountID, balance, bookingDate
+# ╔═╡ 6e5dbcce-7a98-4918-87fb-a4c61b19afde
+ForwardMethods.@forward_methods Delegator field=delegateInstance accountID
 
 # ╔═╡ f0130556-a085-4e27-87fa-8c845b45385a
-accountID(myAccount_PCM_1704)                       # function access
+accountID(myAccount_PCM_1704)                       # ==> "PCM_1704" --> :)
+
+# ╔═╡ d571804a-b679-4aec-a7a4-8a4e5e7e8e45
+methods(accountID)
+
+# ╔═╡ 284f6655-f270-4037-b6c8-1bf3fb911cc4
+ForwardMethods.@forward_methods Delegator field=delegateInstance balance 
 
 # ╔═╡ 04612ddf-e2be-45b0-851b-0e67bf9050ee
 balance(myAccount_PCM_1704)[]                       # ==> 100.87 -->  :)
 
+# ╔═╡ 9868868d-5d08-4f04-bdd6-acf50993130e
+ForwardMethods.@forward_methods Delegator field=delegateInstance bookingDate
+
 # ╔═╡ a3170255-09b8-4747-84a7-8ed6b5a6a523
 bookingDate(myAccount_PCM_1704)                     # function access
 
-# ╔═╡ 32bcbf99-0a05-4cdd-91d4-adc919ecf7fb
-accountID(mySavingsAccount_PCM_1706)
+# ╔═╡ 03c76525-158c-4e6d-b679-b111c5399582
+myAccount_PCM_1704.accountID                         # ==> "PCM_1704" --> :)
 
-# ╔═╡ 26c67680-8f2f-429b-8db5-ce7822093817
-balance(myDelegatorAccount_PCM_1705)[]            # ==> 200.00 --> :)
+# ╔═╡ 606e87c6-687b-448c-8873-9bc0f67cabea
+myAccount_PCM_1704.balance                           # ==> Observable(100.87) --> :)
 
-# ╔═╡ 385003ef-f396-4afa-9e59-0a7f9b452179
-balance(mySavingsAccount_PCM_1706)[]              # ==> 10000.00 --> :)
-
-# ╔═╡ 1d8ee43c-2ce9-4d43-be51-9541a682ab7c
-bookingDate(myDelegatorAccount_PCM_1705)
-
-# ╔═╡ cb9c27b4-4329-4c60-ac72-3e4a2460ce84
-bookingDate(mySavingsAccount_PCM_1706)
+# ╔═╡ a5b4a490-1e95-4ca0-b66b-a558de139d2b
+myAccount_PCM_1704.balance[]                         # ==> 100.87 --> :)
 
 # ╔═╡ 75236218-8b73-4767-8ad7-24d091c7820d
 md"
 ---
-###### 3.4.3 *Delegator* Methods: *Forward* Methods
-(cf. Kwong, 2020, p.174)
-"
-
-# ╔═╡ 1d477288-f36c-40ca-a043-2d5d0791d410
-md"
----
-> Lazy.@forward Delegator.delegateInstance deposit!, withdraw!
----
+###### 3.4.3 *Delegator* Methods: *Forward* Methods by Applying *Macro* $ForwardMethods.@forward\_methods$
+(cf. Kwong, 2020, p.175)
 "
 
 # ╔═╡ c99ef1d0-410e-4d67-80d3-678cee78e884
@@ -460,11 +465,20 @@ withdraw!(instanceAccount::Delegator, amount::Real) =
 	withdraw!(instantanceAccount.delegateInstance::Delegate, amount)
 =#
 
-# ╔═╡ 0374624b-1686-4708-9c85-0fa752560763
-Lazy.@forward Delegator.delegateInstance deposit!, withdraw!
+# ╔═╡ ae400003-0321-432a-a682-fcdde87ab212
+ForwardMethods.@forward_methods Delegator field=delegateInstance deposit!
+
+# ╔═╡ 96c53948-69fa-4bb8-b7ca-ec65ac6427bd
+deposit!(myAccount_PCM_1704, 100.13)             # ==> 201.00 --> :)
+
+# ╔═╡ 5601e421-8852-4945-8dda-85ac4f409f28
+deposit!(myAccount_PCM_1704, 0.00)               # ==> 200.00 --> :)
+
+# ╔═╡ 6330dbcf-7973-40c4-ad4e-0c04cc14f3d6
+ForwardMethods.@forward_methods Delegator field=delegateInstance withdraw!
 
 # ╔═╡ 67d92b24-591c-48aa-8b14-ae7280a2a3ae
-function transfer!(
+function transfer!(                              # transfer method 1
 	instanceAccountFrom::Delegate, instanceAccountTo::Delegate, amount::Real)
 		# each transaction gets a time stamp
 		instanceAccountTo.bookingDate = Dates.now()
@@ -472,41 +486,74 @@ function transfer!(
 		deposit!(instanceAccountTo, amount)
 end # function transfer!
 
-# ╔═╡ 96c53948-69fa-4bb8-b7ca-ec65ac6427bd
-deposit!(myAccount_PCM_1704, 100.13)             # ==> 201.00 --> :)
-
 # ╔═╡ 232cb95d-2980-44c5-b388-01e2d6ff19bb
 withdraw!(myAccount_PCM_1704, 1.00)              # ==> 200.00 --> :)
 
-# ╔═╡ 5601e421-8852-4945-8dda-85ac4f409f28
-deposit!(myAccount_PCM_1704, 0.00)                # ==> 200.00 --> :)
+# ╔═╡ 06391104-64c0-4ee8-9d57-661ecd82c389
+myDelegatorAccount_PCM_1705.delegateInstance
+
+# ╔═╡ c2dc09b5-d12c-4ff3-828c-95d75552d965
+mySavingsAccount_PCM_1705.delegateInstance
+
+# ╔═╡ ecab267c-a84d-43db-85b7-8a5576ab8e14
+mySavingsAccount_PCM_1705.delegateInstance.accountID   # ==> "PCM_1705" --> :)
+
+# ╔═╡ c18d1c60-5338-48d8-a381-673e37427477
+mySavingsAccount_PCM_1705.delegateInstance.balance     # ==> Observable(200.0) --> :)
+
+# ╔═╡ 1a9035b1-6064-4840-ba5d-70582ea3556b
+mySavingsAccount_PCM_1705.delegateInstance.balance[]   # ==> 200.0 --> :)
+
+# ╔═╡ 1c3fe993-59ac-4599-91be-c9e83aad514a
+mySavingsAccount_PCM_1706.delegateInstance.accountID   # ==> "PCM_1706" --> :)
+
+# ╔═╡ c6a97f37-1a4d-4ae4-ac96-80052a74f433
+mySavingsAccount_PCM_1706.delegateInstance.balance[]   # ==> 1000.0 --> :)
 
 # ╔═╡ 4285ecb0-fda0-4ad3-b8b6-32a56b21992b
-deposit!(mySavingsAccount_PCM_1705, 0.00)         # ==> 200.00 --> :)
+deposit!(mySavingsAccount_PCM_1705.delegateInstance, 0.00) # ==> 200.00 --> :)
 
 # ╔═╡ 36c93024-2e2d-4cc1-8ce8-8c4824d36ff4
-deposit!(mySavingsAccount_PCM_1706, 0.00)         # ==> 10000.00 --> :)
+deposit!(mySavingsAccount_PCM_1706.delegateInstance, 0.00) # ==> 10000.00 --> :)
+
+# ╔═╡ 26c67680-8f2f-429b-8db5-ce7822093817
+balance(myDelegatorAccount_PCM_1705)[]            # ==> 200.00 --> :)
+
+# ╔═╡ 385003ef-f396-4afa-9e59-0a7f9b452179
+balance(mySavingsAccount_PCM_1706)[]              # ==> 10000.00 --> :)
+
+# ╔═╡ 1d8ee43c-2ce9-4d43-be51-9541a682ab7c
+bookingDate(myDelegatorAccount_PCM_1705)
+
+# ╔═╡ cb9c27b4-4329-4c60-ac72-3e4a2460ce84
+bookingDate(mySavingsAccount_PCM_1706)
 
 # ╔═╡ e70d161c-bee6-4a80-a43e-650156309624
-function transfer!(fromInstanceAccount::Delegator, toInstanceAccount::Delegator, amount::Real) 
+function transfer!(                               # transfer method 2
+	fromInstanceAccount::Delegator, toInstanceAccount::Delegator, amount::Real) 
 	withdraw!(fromInstanceAccount, amount)
 	deposit!(toInstanceAccount, amount)
 	amount
 end # function transfer!
 
 # ╔═╡ 29932ad2-34ef-479f-be57-cefe7f8bff5c
-function transfer!(fromInstanceAccount::Delegator, toInstanceAccount::Delegate, amount::Real) 
+function transfer!(                               # transfer method 3
+	fromInstanceAccount::Delegator, toInstanceAccount::Delegate, amount::Real) 
 	withdraw!(fromInstanceAccount, amount)
 	deposit!(toInstanceAccount, amount)
 	amount
 end # function transfer!
 
 # ╔═╡ 1553c14a-b3c4-4de8-8dea-7846ef89b828
-function transfer!(fromInstanceAccount::Delegate, toInstanceAccount::Delegator, amount::Real) 
+function transfer!(                               # transfer method 4
+	fromInstanceAccount::Delegate, toInstanceAccount::Delegator, amount::Real) 
 	withdraw!(fromInstanceAccount, amount)
 	deposit!(toInstanceAccount, amount)
 	amount
 end # function transfer!
+
+# ╔═╡ ac0314df-8c8d-48ec-a880-71485bf4d26e
+methods(transfer!)
 
 # ╔═╡ 8fbd2be7-bd08-4634-82d8-bd52639dd773
 md"
@@ -525,7 +572,7 @@ end # function withdrawInterestIncome!
 function transferInterestIncome!(
 	fromInstanceAccount::Delegator, toInstanceAccount::Delegator, amount::Real) 
 	withdrawInterestIncome!(fromInstanceAccount, amount)
-	deposit!(toInstanceAccount, amount)
+	deposit!(toInstanceAccount.delegateInstance, amount)
 	amount
 end # function transferInterestIncome!
 
@@ -535,20 +582,20 @@ md"
 ###### *Transactions*
 "
 
-# ╔═╡ e35a0c0d-01af-400d-a6d0-4b89e15cd634
-mySavingsAccount_PCM_1705.delegateInstance.balance[]     # ==> 200.00 --> :)
-
 # ╔═╡ 22858bf0-70c4-42f2-be5f-77dc554b1b11
 mySavingsAccount_PCM_1706.delegateInstance.balance[]     # ==> 10000.00 --> :)
+
+# ╔═╡ e35a0c0d-01af-400d-a6d0-4b89e15cd634
+mySavingsAccount_PCM_1705.delegateInstance.balance[]     # ==> 200.00 --> :)
 
 # ╔═╡ 06f000bb-00f8-4976-81bd-98e561fb3483
 supertype(Delegator), supertype(Delegate)                # is not a is-a relation !
 
-# ╔═╡ 2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
-typeof(mySavingsAccount_PCM_1705)
-
 # ╔═╡ 71513287-4989-4dd9-adbb-b83241bbefbc
-typeof(myAccount_PCM_1704)
+typeof(myAccount_PCM_1704)                               # ==> Delegate --> :)
+
+# ╔═╡ 2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
+typeof(mySavingsAccount_PCM_1705)                        # ==> Delegator --> :)
 
 # ╔═╡ bb7ef669-46b8-4a8c-af17-0aceb56196a3
 md"
@@ -629,7 +676,8 @@ mySavingsAccount_PCM_1705.interestIncome[]           # ==> 0.0273972602739726 --
 mySavingsAccount_PCM_1705.delegateInstance.balance[] # ==> 200.00 --> :)
 
 # ╔═╡ 158141b6-c8a6-438e-a40b-427f2aa79830
-transferInterestIncome!(mySavingsAccount_PCM_1705, mySavingsAccount_PCM_1706, 0.0273972602739726)                                  # ==> 0.0273972602739726 --> :)
+transferInterestIncome!(
+	mySavingsAccount_PCM_1705, mySavingsAccount_PCM_1706, 0.0273972602739726)                                                         # ==> 0.0273972602739726 --> :)
 
 # ╔═╡ 62d035dd-2874-4a26-81d8-995df8cb8998
 balance(mySavingsAccount_PCM_1705) * 0.05 / 365      # ==> 0.0273972602739726 --> :)
@@ -653,7 +701,8 @@ interestProfit!(mySavingsAccount_PCM_1706, period=100) # ==>136.98667667479828 -
 (balance(mySavingsAccount_PCM_1706) * 0.05 / 365) * 100 # ==>136.98667667479828--> :)
 
 # ╔═╡ 7ffd0dfb-1831-44db-9076-94acb00ec4d1
-transferInterestIncome!(mySavingsAccount_PCM_1706, mySavingsAccount_PCM_1706, 136.98667667479828)                                  # ==>136.98667667479828 --> :)
+transferInterestIncome!(
+	mySavingsAccount_PCM_1706, mySavingsAccount_PCM_1706, 136.98667667479828)                                                           # ==>136.98667667479828 --> :)
 
 # ╔═╡ aa171e16-1de7-4951-aca1-7a5d345cedcf
 mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --> :)
@@ -663,32 +712,10 @@ mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --
 136.98667667479828 + 10000.027397260274 == 10137.014073935072
 
 # ╔═╡ 18451021-c108-4b10-9c5e-657cf2628614
-mySavingsAccount_PCM_1706.interestIncome[]           # ==> 136.98667667479828 --> :)
+mySavingsAccount_PCM_1706.interestIncome[]           # ==> 0.00 --> :)
 
 # ╔═╡ 44096a6b-b1b6-4137-af5d-ce7dafe28b2d
 mySavingsAccount_PCM_1706.delegateInstance.balance[] # ==> 10137.014073935072 --> :)
-
-# ╔═╡ b7c1e74e-8201-4cdf-bdc9-10f3e180ca71
-md"
----
-###### 3.5 *Macro* $Lazy.@forward$
-The $Lazy.@forward$ macro lets you *forward* function calls from a *wrapper* type (our $Delegator$) to a *specific field* (our $Delegator.delegateInstance::Delegate$) of that type.
-Since $Lazy.jl$ does not include documentation in its README, the only reliable place to read about the macro is its [*source file*](https://github.com/MikeInnes/Lazy.jl/blob/master/src/macros.jl).
-
-"
-
-# ╔═╡ ddee8abc-7fc3-42ce-8b00-725298125896
-md"
----
-###### 3.6 *Expansion* of Macro $Lazy.@forward$
-(cf. Kwong, 2020, p.176)
-"
-
-# ╔═╡ b9e62db7-9e54-4d95-833d-f9396820d6de
-@macroexpand Lazy.@forward Delegator.delegateInstance accountID, balance, bookingDate
-
-# ╔═╡ f7972b43-ed26-4541-8f69-b8ebe6ecf5e7
-@macroexpand Lazy.@forward Delegator.delegateInstance deposit!, withdraw!
 
 # ╔═╡ 0f0c054f-b9a7-4881-8051-3c74fd2f4549
 md"
@@ -700,8 +727,13 @@ md"
 md"
 ---
 ##### 5. References
+
+- **D., Curt**; [*ForwardMethods.@forward_methods*](https://github.com/curtd/ForwardMethods.jl/blob/main/README.md); last visit 2025/07/31
+- **Innes, M. J.**; [*Lazy.@forward*](https://github.com/MikeInnes/Lazy.jl/blob/master/src/macros.jl); last visit 2025/07/26
+- **Jean, C. St.**; [*MacroTools.@capture*](https://fluxml.ai/MacroTools.jl/stable/pattern-matching/); last visit 2025/07/29
 - **Kwong, T.**; *Hands On Design Patterns and Best Practices*, Birmingham, UK: Packt, 2020
-- **Mike J Innes**; [*Lazy.@forward*](https://github.com/MikeInnes/Lazy.jl/blob/master/src/macros.jl); last visit 2025/07/26
+
+https://juliapackages.com/p/forwardmethods
 "
 
 # ╔═╡ ad79d58a-f88a-4dfd-9a65-a5cc6bba3b2d
@@ -717,13 +749,13 @@ This is a **draft** under the Attribution-NonCommercial-ShareAlike 4.0 Internati
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
-Lazy = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
+ForwardMethods = "5fe2550f-d27e-4649-9aea-fdf9a83a1aa9"
 Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 
 [compat]
-Lazy = "~0.15.1"
+ForwardMethods = "~1.7.0"
 Observables = "~0.5.5"
 Plots = "~1.40.13"
 Pluto = "~0.20.13"
@@ -735,7 +767,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "33dce9ce741bdbf2e0171806b205b0e8041ace02"
+project_hash = "52a9f1663aa6223aa64a90459491ba504358bf31"
 
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
@@ -953,6 +985,12 @@ git-tree-sha1 = "9c68794ef81b08086aeb32eeaf33531668d5f5fc"
 uuid = "1fa38f19-a742-5d3f-a2b9-30dd87b9d5f8"
 version = "1.3.7"
 
+[[deps.ForwardMethods]]
+deps = ["MLStyle", "MacroUtilities"]
+git-tree-sha1 = "4153d2d64ec4e0d9464e1804ab2d784773e610ac"
+uuid = "5fe2550f-d27e-4649-9aea-fdf9a83a1aa9"
+version = "1.7.0"
+
 [[deps.FreeType2_jll]]
 deps = ["Artifacts", "Bzip2_jll", "JLLWrappers", "Libdl", "Zlib_jll"]
 git-tree-sha1 = "2c5512e11c791d1baed2049c5652441b28fc6a31"
@@ -1128,12 +1166,6 @@ git-tree-sha1 = "0f2da712350b020bc3957f269c9caad516383ee0"
 uuid = "0e77f7df-68c5-4e49-93ce-4cd80f5598bf"
 version = "1.3.0"
 
-[[deps.Lazy]]
-deps = ["MacroTools"]
-git-tree-sha1 = "1370f8202dac30758f3c345f9909b97f53d87d3f"
-uuid = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
-version = "0.15.1"
-
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
@@ -1235,10 +1267,21 @@ git-tree-sha1 = "c64d943587f7187e751162b3b84445bbbd79f691"
 uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
 version = "1.1.0"
 
+[[deps.MLStyle]]
+git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
+uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
+version = "0.4.17"
+
 [[deps.MacroTools]]
 git-tree-sha1 = "1e0228a030642014fe5cfe68c2c0a818f9e3f522"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 version = "0.5.16"
+
+[[deps.MacroUtilities]]
+deps = ["MLStyle", "OrderedCollections", "PrecompileTools", "Tricks"]
+git-tree-sha1 = "3d18b5f423ee67ca441d99f20aaf0f3e1813107e"
+uuid = "274a0f0b-05f4-4024-87ff-de4a5b524b4f"
+version = "1.18.0"
 
 [[deps.Malt]]
 deps = ["Distributed", "Logging", "RelocatableFolders", "Serialization", "Sockets"]
@@ -1971,16 +2014,23 @@ version = "1.4.1+2"
 # ╠═5b5ce492-9dda-4ca1-83c6-9d4e3755db47
 # ╟─857744d4-ebaf-4127-a1d2-7769ea7401b5
 # ╟─04e8a5b7-4ed8-4d15-8428-e48e38e48c85
+# ╟─232e4c4f-ea43-4e39-8f91-b63c63e80bc5
+# ╠═df97ca4e-21e2-46cb-a1b7-84843a05853c
+# ╠═6d4f97c2-5d6c-4ae7-b391-7f75a7e60530
+# ╟─be2ab5e6-4e62-4740-9713-76b2c89ead7f
+# ╠═de5ad422-bef8-4a61-822d-8a3199eaf8ce
+# ╠═4561ca94-933b-43b7-af47-25de73678d47
+# ╠═e2ccf186-2255-4f8d-8d84-95545462b3cd
+# ╠═c5e69f36-fdae-4895-9a39-624f1b9192e9
+# ╠═869a9499-ea56-4808-8f5a-538eda91ef65
+# ╠═390502a9-e196-4a63-9888-d3fe51964a05
+# ╠═c39eee83-422a-4682-96d5-ab797f80f09b
 # ╟─547c655c-ab33-4782-b23d-316c58069683
-# ╟─e935db07-fcff-45c9-9359-f8dbadd4c15a
 # ╟─2dca8233-66c0-418c-90cd-3a7077a9f94a
 # ╟─9fe67929-d4e7-4c1e-bab5-936cf1c5c9ec
 # ╟─dee25f38-7870-43b5-8a16-4f386fb3f621
 # ╟─71dff3b3-2115-4cc2-9c97-f8bf8e73facc
 # ╟─66fc30e2-fb4e-4f84-867b-04ed16388c97
-# ╠═0aa367f0-d8eb-4f4b-8d61-260db79ef53b
-# ╠═b161f880-af30-4d1c-b4d7-fc671ddba7e8
-# ╠═ac0f9574-826e-44f2-80f1-a6468f83922a
 # ╠═c84ecf5a-a485-4690-bbef-623d378c038c
 # ╠═4c4e4ef0-247a-4603-96b2-2f4fc83f81d8
 # ╠═df7db8e4-21d1-4674-90db-eabd17e0c078
@@ -2000,8 +2050,10 @@ version = "1.4.1+2"
 # ╠═17b74839-d6e3-46b8-a41b-64b4affc5d82
 # ╠═67d92b24-591c-48aa-8b14-ae7280a2a3ae
 # ╠═1f79367f-17ef-40ff-87f1-6d0d8d8775d1
+# ╠═add48cac-9e6a-4e1c-aac4-a89a9a32cec6
 # ╠═96c53948-69fa-4bb8-b7ca-ec65ac6427bd
 # ╠═232cb95d-2980-44c5-b388-01e2d6ff19bb
+# ╠═5601e421-8852-4945-8dda-85ac4f409f28
 # ╟─b1093d93-b7b4-4278-8211-cdbefbe21a31
 # ╠═d4451a53-b8df-4a67-a0fe-877a93a017c5
 # ╠═25b0cae5-ff11-40b1-9188-7ed5c44cb43e
@@ -2014,34 +2066,45 @@ version = "1.4.1+2"
 # ╠═44c328c6-823e-48a2-9c5a-1c8199b3118b
 # ╠═ec96123a-490d-440e-9561-b8226171372d
 # ╟─f1df0d52-5599-49cc-be91-652d7244a605
-# ╟─f27b457e-83e3-492a-8177-42bbdf2caa68
 # ╠═35e2021c-a48e-4066-9529-e219e0804c9e
-# ╠═659f59e7-ef24-494b-bf84-61e9b384a23b
-# ╠═32bcbf99-0a05-4cdd-91d4-adc919ecf7fb
-# ╠═5601e421-8852-4945-8dda-85ac4f409f28
+# ╠═6e5dbcce-7a98-4918-87fb-a4c61b19afde
+# ╠═d571804a-b679-4aec-a7a4-8a4e5e7e8e45
+# ╠═284f6655-f270-4037-b6c8-1bf3fb911cc4
+# ╠═9868868d-5d08-4f04-bdd6-acf50993130e
+# ╠═03c76525-158c-4e6d-b679-b111c5399582
+# ╠═606e87c6-687b-448c-8873-9bc0f67cabea
+# ╠═a5b4a490-1e95-4ca0-b66b-a558de139d2b
+# ╟─75236218-8b73-4767-8ad7-24d091c7820d
+# ╠═c99ef1d0-410e-4d67-80d3-678cee78e884
+# ╠═c4e6e588-1fc0-4787-8557-0b1b538cbc88
+# ╠═ae400003-0321-432a-a682-fcdde87ab212
+# ╠═6330dbcf-7973-40c4-ad4e-0c04cc14f3d6
+# ╠═06391104-64c0-4ee8-9d57-661ecd82c389
+# ╠═c2dc09b5-d12c-4ff3-828c-95d75552d965
+# ╠═ecab267c-a84d-43db-85b7-8a5576ab8e14
+# ╠═c18d1c60-5338-48d8-a381-673e37427477
+# ╠═1a9035b1-6064-4840-ba5d-70582ea3556b
+# ╠═1c3fe993-59ac-4599-91be-c9e83aad514a
+# ╠═c6a97f37-1a4d-4ae4-ac96-80052a74f433
 # ╠═4285ecb0-fda0-4ad3-b8b6-32a56b21992b
 # ╠═36c93024-2e2d-4cc1-8ce8-8c4824d36ff4
 # ╠═26c67680-8f2f-429b-8db5-ce7822093817
 # ╠═385003ef-f396-4afa-9e59-0a7f9b452179
 # ╠═1d8ee43c-2ce9-4d43-be51-9541a682ab7c
 # ╠═cb9c27b4-4329-4c60-ac72-3e4a2460ce84
-# ╟─75236218-8b73-4767-8ad7-24d091c7820d
-# ╟─1d477288-f36c-40ca-a043-2d5d0791d410
-# ╠═c99ef1d0-410e-4d67-80d3-678cee78e884
-# ╠═c4e6e588-1fc0-4787-8557-0b1b538cbc88
-# ╠═0374624b-1686-4708-9c85-0fa752560763
 # ╠═e70d161c-bee6-4a80-a43e-650156309624
 # ╠═29932ad2-34ef-479f-be57-cefe7f8bff5c
 # ╠═1553c14a-b3c4-4de8-8dea-7846ef89b828
+# ╠═ac0314df-8c8d-48ec-a880-71485bf4d26e
 # ╟─8fbd2be7-bd08-4634-82d8-bd52639dd773
 # ╠═41753eb1-a59e-43b2-8d78-3980d5d20db8
 # ╠═38e636c4-eb9a-4129-83f0-cb0e909f85b2
 # ╟─19087e77-be16-4815-8d00-b2d00588fccc
-# ╠═e35a0c0d-01af-400d-a6d0-4b89e15cd634
 # ╠═22858bf0-70c4-42f2-be5f-77dc554b1b11
+# ╠═e35a0c0d-01af-400d-a6d0-4b89e15cd634
 # ╠═06f000bb-00f8-4976-81bd-98e561fb3483
-# ╠═2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
 # ╠═71513287-4989-4dd9-adbb-b83241bbefbc
+# ╠═2a4eea12-f7a4-4f40-9bf1-aeb76885dd72
 # ╟─bb7ef669-46b8-4a8c-af17-0aceb56196a3
 # ╠═3c8c286f-a0d8-49ca-b217-73247cbfb8c1
 # ╠═012c9a50-cb54-49e8-a954-62a779681c7e
@@ -2074,10 +2137,6 @@ version = "1.4.1+2"
 # ╠═1ca80b7c-5136-487a-a447-d89bc416d813
 # ╠═18451021-c108-4b10-9c5e-657cf2628614
 # ╠═44096a6b-b1b6-4137-af5d-ce7dafe28b2d
-# ╟─b7c1e74e-8201-4cdf-bdc9-10f3e180ca71
-# ╟─ddee8abc-7fc3-42ce-8b00-725298125896
-# ╠═b9e62db7-9e54-4d95-833d-f9396820d6de
-# ╠═f7972b43-ed26-4541-8f69-b8ebe6ecf5e7
 # ╟─0f0c054f-b9a7-4881-8051-3c74fd2f4549
 # ╟─cbb2d47f-515a-4f99-bb84-1230cca2b7a8
 # ╟─ad79d58a-f88a-4dfd-9a65-a5cc6bba3b2d
