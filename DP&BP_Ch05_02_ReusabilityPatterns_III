@@ -23,7 +23,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch05\_02\_Reusability Patterns\_III
 ##### file: DP&BP\_Ch05\_02\_ReusabilityPatterns\_III: The (Tim) Holy Traits Pattern
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/08/03 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/08/05 ***
 
 ====================================================================================
 "
@@ -31,6 +31,8 @@ md"
 # ╔═╡ 78f7c8cb-a4ef-4e10-adde-135750d7b33a
 md"
 ##### 0. Introduction
+*In Julia, traits are a way to define and work with characteristics or behaviors of types, often used for multiple dispatch and defining contracts between types. They are not a built-in language feature but are implemented using multiple dispatch and functions that return information about a type. Traits allow for more flexible and extensible code compared to traditional inheritance, enabling specialized behavior based on type properties.* (Google AI, 2025/08/04)
+
 "
 
 # ╔═╡ 032b9649-86fc-4d47-a036-7c0e75805d75
@@ -54,31 +56,43 @@ md"
 # ╔═╡ 00ed909b-6ed1-4d5d-9962-8c0ba7f68f40
 md"
 ---
-###### 3.1 Graph of *Abstract Type Hierarchy*
-(cf. Kwong, 2020, p.181)
+###### 3.1 Hierarchy of *Types* and Marking of *Traits*
+(cf. Kwong, 2020, p.181, p.183, p.184f.)
 "
 
 # ╔═╡ cecdd3c8-63a1-4909-9a7a-2488bc4f2304
 md"
 
-                                                +-------+
-                                                | Asset |
-                                                +---+---+
-                                                    |   
-                  +---------------------------------+-------------------+
-                  |                                 |                   |    
-            +-----+------+                    +-----+------+      +-----+------+
-            |  Property  |                    | Investment |      |   Cash     |
-            +-----+------+                    +-----+------+      +------------+
-                  |                                 |
-           +------+-------+                +--------+------+
-           |              |                |               |
-      +----+----+   +-----+-----+   +------+------+   +----+----+
-      |  House  |   | Apartment |   | FixedIncome |   | Equity  |
-      +---------+   +-----------+   +-------------+   +---------+
+                                                   +===========+
+                                                   | Asset (-) |
+                                                   +=====+=====+
+                                                         ^
+                                                         |
+                    +------------------------------------+-------------------+
+                    ^                                    ^                   ^     
+                    |                                    |                   |
+             +======+=======+                    +=======+========+     +====+====+
+             | Property (-) |                    | Investment (+) |     | Cash(+) |
+             +======+=======+                    +=======+========+     +====+====+
+                    ^                                    ^                   ^
+                    |                                    |                   |
+           +--------+-------+                  +---------+-------+      +----+----+
+           ^                ^                  ^                 ^      |  Money  |
+           |                |                  |                 |      +---------+
+           |                |                  |                 |
+     +=====+=====+  +=======*======+  +========+=======+  +======+======+
+     | House (-) |  | Apartment(-) |  | FixedIncome(+) |  |  Equity (+) |
+     +=====+=====+  +==============+  +========+=======+  +======+======+
+           ^                                   ^                 ^
+           |                                   |                 |
+           |                                   |                 |
+    +------+--------+                 +--------+-------+  +------+------+
+    | Residence (-) |                 | TreasuryBill(+)|  |  Stock (+)  |
+    +---------------+                 +----------------+  +-------------+            
+  
 
 
-**Fig. 5.3.1**: *Abstract* Type Hierachy of Personal Assets (Kwong, 2020, p.181)
+**Fig. 5.3.1**: Hierarchy of *Types* (*Abstract* (=), *Concrete* (-)) and Marks of *Trait* ((+) = $IsLiquid()$, (-) = $IsIlliquid()$) of Personal *Assets* (cf. Kwong, 2020, p.181, p.183, p.184f.)  
 "
 
 # ╔═╡ 079bb9bd-1201-4652-9443-6982de896414
@@ -119,25 +133,26 @@ end # struct Residence
 
 # ╔═╡ 1e608280-f9b0-4755-ad96-cd5d09213342
 struct Stock <: Equity
-	symbol
-	name
+	symbol                              # trading symbol
+	name                                # name of company
 end # struct Stock
 
 # ╔═╡ c08cafa6-bf8d-4620-88c6-f9f788c9e7cb
 struct TreasuryBill <: FixedIncome
-	cusip              # = Committee on Uniform Securities Identification Procedures
+	# CUSIP = C(ommittee on) U(niform) S(ecurities) I(dentification) P(rocedures)
+	cusip        
 end # struct TreasuryBill
 
 # ╔═╡ d26eea1f-73ce-44b1-b396-ee6efd13b305
 struct Money <: Cash
-	currency
+	currency                            # e.g. USD
 	amount
 end # struct
 
 # ╔═╡ c4826294-8812-4814-a6f1-16ed32cb7ea4
 md"
 ---
-###### 3.4 Defining the Hierarchy of *Trait* Types
+###### 3.4 Defining the *Tree* of *Trait* Types
 (cf. Kwong, 2020, p.184; modified)
 
 We changed some literals so that the discrimination of *types* and *traits* becomes more discriminable.
@@ -146,59 +161,93 @@ We changed some literals so that the discrimination of *types* and *traits* beco
 # ╔═╡ 15d00b86-55af-4b5c-9b00-bba1b4a73092
 md"
 
-                            +===========+===========+
-                            |     LiquidityTrait    |
-                            +===========+===========+
+                               +========+========+
+                               |    Liquidity    |
+                               |   (abstract)    |
+                               +========+========+
                                         |
                                        / \
                                      /     \
-                                   /         \
+                         <<is-a>>  /         \  <<is-a>>
                                  /             \
                                /                 \
                         +------------+     +------------+
                         |  IsLiquid  |     | IsIlLiquid |
+                        | (concrete) |     | (concrete) |
                         +------------+     +------------+
                                          
 
 
-**Fig. 5.3.2**: Hierarchy of *Traits* (*abstract* data type: '=' ; *concrete* data type: '-')
+**Fig. 5.3.2**: Tree of *Trait Types* (*abstract* data type: '=' ; *concrete* data type: '-')
 "
 
 # ╔═╡ 50af0e51-e232-4f49-8935-8118f78aa513
 begin    # hierarchy of traits
-	abstract type LiquidityTrait        end     # abstract type
-	struct IsLiquid   <: LiquidityTrait end     # concrete type == specific trait
-	struct IsIlliquid <: LiquidityTrait end     # concrete type == specific trait
+	abstract type Liquidity        end     # abstract type
+	struct IsLiquid   <: Liquidity end     # concrete type == specific trait
+	struct IsIlliquid <: Liquidity end     # concrete type == specific trait
 	#------------------------------------------------------------------------------
 end # begin
 
 # ╔═╡ 5af0d88b-38cf-4641-a94d-c2b1898cc051
 md"
 ---
-###### 3.5 Mapping of Asset-*Types* to Liquidity-*Traits*
+###### 3.5 Identifying Traits (= Mapping of Asset-*Types* to Liquidity-*Traits*)
 (cf. Kwong, 2020, p.184f; modified)
 
-We had to modify Kwong's code because Pluto could not distinguish between *abstract types* and *functions* when they bear identical names (e.g. Kwong's $LiquidityStyle$). In this case we modified function names so that they start with *small* letters: from e.g. $L...(.)$ to $l...(.)$.
+We modified Kwong's code two times: 
+- *First*, because Pluto could not distinguish between *abstract types* and *functions* when they bear *identical* names (e.g. Kwong's $LiquidityStyle$). In this case we modified *function* names so that they start with *small* letters: from e.g. $L...(.)$ to $l...(.)$.
+- *Second*, because $liquidity$ should also accept *instances* of *assets* like e.g. the instances in the *test functions*
 "
 
+# ╔═╡ ca1316d4-eeaf-49ad-8aa9-ae1cabfcc17f
+typeof(Type)
+
+# ╔═╡ 28992f89-7b49-483a-b593-62e2f112b973
+supertype(Type)
+
+# ╔═╡ 44d5bef4-8386-406a-9f74-f38532ada5f9
+subtypes(Type)
+
+# ╔═╡ 1be2deac-d404-44fe-99b2-5bbaede4dab0
+Asset <: Type, Asset isa Type, Property isa Type, Cash isa Type
+
+# ╔═╡ 2a84123a-ff7b-4aa7-94d7-5d2d90ad8c46
+Money("USD", 100.00) isa Type, Money("USD", 100.00) isa Cash, Money("USD", 100.00) isa Asset
+
 # ╔═╡ 69e6097d-0da6-4761-b827-76c4438dff7e
-# function liquidityTrait (small letter 'l') assigns 
+# function liquidity (small letter 'l') assigns 
 #    asset types (data types; left) to liquidity traits (right)
 begin
-	liquidityTrait(::Type)               = IsIlliquid()    # default
-	liquidityTrait(::Type{<:Cash})       = IsLiquid()
-	liquidityTrait(::Type{<:Investment}) = IsLiquid()
+	liquidity(::Type)               = IsIlliquid() # default
+	liquidity(::Type{<:Cash})       = IsLiquid()   # Cash and its ...
+	liquidity(::Type{<:Investment}) = IsLiquid()   # Investment ...
+	#------------------------------------------------------------------------------
+	# new: for asset instances
+	liquidity(assetInstance::T) where {T <: Asset}      = IsIlliquid()
+	liquidity(assetInstance::T) where {T <: Cash}       = IsLiquid() # Cash ...
+	liquidity(assetInstance::T) where {T <: Investment} = IsLiquid() # Investment ...
 end
 
 # ╔═╡ d557a958-bb48-4651-a693-d09321e6948e
 begin
-	println("liquidityTrait(Type)       = ", liquidityTrait(Type))     # <-- default
-	println("liquidityTrait(Asset)      = ", liquidityTrait(Asset))
-	println("liquidityTrait(Property)   = ", liquidityTrait(Property))
-	println("liquidityTrait(Investment) = ", liquidityTrait(Investment))
-	println("liquidityTrait(Cash)       = ", liquidityTrait(Cash))
-	println("liquidityTrait(House)      = ", liquidityTrait(House))
-	println("liquidityTrait(Apartment)  = ", liquidityTrait(Apartment))
+	# println("liquidity(Type)       = ", liquidity(Type))        # ==> IsIlliquid()
+	println("liquidity(Asset)      = ", liquidity(Asset))       # ==> IsIlliquid()
+	println("liquidity(Property)   = ", liquidity(Property))    # ==> IsIlliquid()
+	println("liquidity(Investment) = ", liquidity(Investment))  # ==> IsLiquid()
+	println("liquidity(Cash)       = ", liquidity(Cash))        # ==> IsLiquid()
+	println("liquidity(House)      = ", liquidity(House))       # ==> IsIlliquid()
+	println("liquidity(Apartment)  = ", liquidity(Apartment))   # ==> IsIlliquid()
+	println("#---------------------------------------------------------------------")
+	println("liquidity(Money('USD', 100.00)) = ", 
+			liquidity(Money("USD", 100.00)))
+	println("liquidity(Stock('AAPL', 'Apple, Inc.')) = ", 
+			liquidity(Stock("AAPL", "Apple, Inc.")))
+    println("liquidity(Residence('Los Angeles')) = ", 
+			liquidity(Residence("Los Angeles")))
+	println("liquidity(TreasuryBill('123456789')) = ", 
+			liquidity(TreasuryBill("123456789")))
+	println("#---------------------------------------------------------------------")
 end # begin
 
 # ╔═╡ 0a240e98-0e02-40cc-8266-6730732fd4a1
@@ -207,38 +256,47 @@ md"
 ###### 3.6 Implementing Trait *Behavior*
 (cf. Kwong, 2020, p.185; modified)
 
-We modified in Kwong's code of $tradable$ the function name $LiquidityStyle$ to $liquidityTrait$.
+We modified in Kwong's code of $tradable$ the function name $LiquidityStyle$ to $liquidity$.
 "
 
 # ╔═╡ 2ce2ef56-35b1-4719-a2b1-e0c775f13516
 md"
 ---
-###### 3.6.1 Trait Behavior $tradable$
+###### 3.6.1 Trait Behavior $tradability$
 (cf. Kwong, 2020, p.185)
 
-Here we modified the code slightly and introduced a *second* method of $tradable$.
+Here we modified the code slightly and introduced a *second* method of $tradability$ for parameter $assetInstance$.
 "
 
 # ╔═╡ ce12bf0b-0d2b-4f27-899d-6e02c718ab42
-# The assetType is tradable if is liquid
+# The assetType (kwong's 'thing') is tradable if is liquid
 begin
-	tradable(assetType::Type) = 
-		tradable(assetType, liquidityTrait(assetType))
-	                  #                         ^----- T / assetType
-	tradable(asset::T) where {T <: Asset} =              # new
-		tradable(asset, liquidityTrait(typeof(asset)))   # new
-	tradable(x, ::IsLiquid)   = true
-	tradable(x, ::IsIlliquid) = false
+	tradability(assetType::Type) = 
+		tradability(assetType, liquidity(assetType))         
+	tradability(assetInstance::T) where {T <: Asset} =                 # new
+		tradability(assetInstance, liquidity(typeof(assetInstance)))   # new
+	tradability(typeOrInstance, ::IsLiquid)   = true
+	tradability(typeOrInstance, ::IsIlliquid) = false
 end # begin
 
 # ╔═╡ c40bd50d-c242-4930-9359-26228e971a15
 begin
-	println("tradable(Asset)      = ", tradable(Asset))
-	println("tradable(Property)   = ", tradable(Property))
-	println("tradable(Investment) = ", tradable(Investment))
-	println("tradable(Cash)       = ", tradable(Cash))
-	println("tradable(House)      = ", tradable(House))
-	println("tradable(Apartment)  = ", tradable(Apartment))
+	println("tradability(Asset)      = ", tradability(Asset))
+	println("tradability(Property)   = ", tradability(Property))
+	println("tradability(Investment) = ", tradability(Investment))
+	println("tradability(Cash)       = ", tradability(Cash))
+	println("tradability(House)      = ", tradability(House))
+	println("tradability(Apartment)  = ", tradability(Apartment))
+	println("#---------------------------------------------------------------------")
+	println("tradability(Money('USD', 100.00)) = ", 
+			tradability(Money("USD", 100.00)))
+	println("tradability(Stock('AAPL', 'Apple, Inc.')) = ", 
+			tradability(Stock("AAPL", "Apple, Inc.")))
+    println("tradability(Residence('Los Angeles')) = ", 
+			tradability(Residence("Los Angeles")))
+	println("tradability(TreasuryBill('123456789')) = ", 
+			tradability(TreasuryBill("123456789")))
+	println("#---------------------------------------------------------------------")
 end # begin
 
 # ╔═╡ d50f5c53-6ea5-4efd-bf6f-864bcf61d623
@@ -253,13 +311,13 @@ Here we modified the code slightly and introduced a *second* method of $marketPr
 # ╔═╡ a2305f01-849a-44dc-98d2-40dd37d9e45e
 begin
 	marketPrice(assetType::Type) = 
-		marketPrice(assetType, liquidityTrait(assetType))
-	marketPrice(asset::T) where {T <: Asset} =              # new
-		marketPrice(asset, liquidityTrait(typeof(asset)))   # new
-	marketPrice(assetType, ::IsLiquid)   = 
-		println("Please implement pricing function for $assetType")
-	marketPrice(assetType, ::IsIlliquid) = 
-		println("Price for illiquid asset $assetType is not available.")
+		marketPrice(assetType, liquidity(assetType))         
+	marketPrice(assetInstance::T) where {T <: Asset} =                 # new
+		marketPrice(assetInstance, liquidity(typeof(assetInstance)))   # new
+	marketPrice(typeOrInstance, ::IsLiquid)   = 
+		println("Please implement pricing function for $typeOrInstance")
+	marketPrice(typeOrInstance, ::IsIlliquid) = 
+		println("Price for illiquid asset $typeOrInstance is not available.")
 end # begin
 
 # ╔═╡ 259bdfa5-11f8-4d37-ae52-1c114c767c0c
@@ -276,14 +334,24 @@ end # begin
 
 # ╔═╡ 5af938be-06e9-4644-baf1-02614396a126
 begin
-	println(marketPrice(Asset))
-	println(marketPrice(Property))
-	println(marketPrice(Investment))
-	println(marketPrice(Cash))
-	println(marketPrice(House))
-	println(marketPrice(Apartment))
-	println(marketPrice(FixedIncome))
-	println(marketPrice(Equity))
+	println("marketPrice(Asset) = ", marketPrice(Asset))
+	println("marketPrice(Property) = ", marketPrice(Property))
+	println("marketPrice(Investment) = ", marketPrice(Investment))
+	println("marketPrice(Cash) = ", marketPrice(Cash))
+	println("marketPrice(House) = ", marketPrice(House))
+	println("marketPrice(Apartment) = ", marketPrice(Apartment))
+	println("marketPrice(FixedIncome) = ", marketPrice(FixedIncome))
+	println("marketPrice(Equity) = ", marketPrice(Equity))
+	println("#---------------------------------------------------------------------")
+	println("marketPrice(Money('USD', 100.00)) = ", 
+			marketPrice(Money("USD", 100.00)))
+	println("marketPrice(Stock('AAPL', 'Apple, Inc.')) = ", 
+			marketPrice(Stock("AAPL", "Apple, Inc.")))
+    println("marketPrice(Residence('Los Angeles')) = ", 
+			marketPrice(Residence("Los Angeles")))
+	println("marketPrice(TreasuryBill('123456789')) = ", 
+			marketPrice(TreasuryBill("123456789")))
+	println("#---------------------------------------------------------------------")
 end # begin
 
 # ╔═╡ 5fe02773-d5b6-4c99-a45e-556f870a4579
@@ -296,58 +364,47 @@ md"
 # ╔═╡ 4f40df12-0744-42b4-af62-c340d79d2794
 function traitTestCash()
 	cash = Money("USD", 100.00)
-	@show tradable(cash)
+	@show tradability(cash)
 	@show marketPrice(cash)
 end # function traitTestCash
+
+# ╔═╡ ef04c3e5-c96c-4f3d-9376-6fc10a8feaf7
+traitTestCash()
 
 # ╔═╡ a66f858c-7602-44d3-9520-bd60c98a5293
 function traitTestStock()
 	aapl = Stock("AAPL", "Apple, Inc.")
-	@show tradable(aapl)
+	@show tradability(aapl)
 	@show marketPrice(aapl)
 end # function traitTestStock
+
+# ╔═╡ f18ee1a5-dc99-421e-9511-769ff2e7dbd7
+traitTestStock()
 
 # ╔═╡ 5ec51719-893a-4711-9a0d-7c614ead9a1c
 function traitTestResidence()
 	try 
 		home = Residence("Los Angeles")
-		@show tradable(home)
+		@show tradability(home)
 		@show marketPrice(home)
 	catch exception
 		println(exception)
 	end # try
-	true
 end # function traitTestResidence
+
+# ╔═╡ 88b41946-5ce9-4540-beeb-de663611d866
+traitTestResidence()
 
 # ╔═╡ fa5133cc-ec3d-40f1-8904-372968aa8f0c
 function traitTestBond()
 	try 
 		bill = TreasuryBill("123456789")
-		@show tradable(bill)
+		@show tradability(bill)
 		@show marketPrice(bill)
 	catch exception
 		println(exception)
 	end # try
-	true
 end # function traitTestResidence
-
-# ╔═╡ 38b308ea-6694-417e-a668-d26f7affd4e4
-tradable(Money("USD", 100.00))
-
-# ╔═╡ 51e468ca-3f00-4889-8422-41af8d19d55e
-typeof(Money("USD", 100.00))
-
-# ╔═╡ ef04c3e5-c96c-4f3d-9376-6fc10a8feaf7
-traitTestCash()
-
-# ╔═╡ f18ee1a5-dc99-421e-9511-769ff2e7dbd7
-traitTestStock()
-
-# ╔═╡ 68111158-dbd3-4f7f-9e3c-5b98f31cf5c8
-marketPrice(Residence("Los Angeles"))
-
-# ╔═╡ 88b41946-5ce9-4540-beeb-de663611d866
-traitTestResidence()
 
 # ╔═╡ 5790b76e-029e-4977-9e17-5bac89bd8101
 traitTestBond()
@@ -1630,6 +1687,11 @@ version = "1.4.1+2"
 # ╟─15d00b86-55af-4b5c-9b00-bba1b4a73092
 # ╠═50af0e51-e232-4f49-8935-8118f78aa513
 # ╟─5af0d88b-38cf-4641-a94d-c2b1898cc051
+# ╠═ca1316d4-eeaf-49ad-8aa9-ae1cabfcc17f
+# ╠═28992f89-7b49-483a-b593-62e2f112b973
+# ╠═44d5bef4-8386-406a-9f74-f38532ada5f9
+# ╠═1be2deac-d404-44fe-99b2-5bbaede4dab0
+# ╠═2a84123a-ff7b-4aa7-94d7-5d2d90ad8c46
 # ╠═69e6097d-0da6-4761-b827-76c4438dff7e
 # ╠═d557a958-bb48-4651-a693-d09321e6948e
 # ╟─0a240e98-0e02-40cc-8266-6730732fd4a1
@@ -1643,15 +1705,12 @@ version = "1.4.1+2"
 # ╠═88de205d-5c99-48e8-a0d8-888acad928b2
 # ╟─5fe02773-d5b6-4c99-a45e-556f870a4579
 # ╠═4f40df12-0744-42b4-af62-c340d79d2794
-# ╠═a66f858c-7602-44d3-9520-bd60c98a5293
-# ╠═5ec51719-893a-4711-9a0d-7c614ead9a1c
-# ╠═fa5133cc-ec3d-40f1-8904-372968aa8f0c
-# ╠═38b308ea-6694-417e-a668-d26f7affd4e4
-# ╠═51e468ca-3f00-4889-8422-41af8d19d55e
 # ╠═ef04c3e5-c96c-4f3d-9376-6fc10a8feaf7
+# ╠═a66f858c-7602-44d3-9520-bd60c98a5293
 # ╠═f18ee1a5-dc99-421e-9511-769ff2e7dbd7
-# ╠═68111158-dbd3-4f7f-9e3c-5b98f31cf5c8
+# ╠═5ec51719-893a-4711-9a0d-7c614ead9a1c
 # ╠═88b41946-5ce9-4540-beeb-de663611d866
+# ╠═fa5133cc-ec3d-40f1-8904-372968aa8f0c
 # ╠═5790b76e-029e-4977-9e17-5bac89bd8101
 # ╟─75ea9269-4e61-4cf7-b763-dab5588f6788
 # ╟─ac91d782-edcb-4ce9-ad5e-43e317fef1f8
