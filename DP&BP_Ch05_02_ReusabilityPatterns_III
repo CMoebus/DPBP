@@ -23,22 +23,38 @@ md"
 ====================================================================================
 #### DP&BP\_Ch05\_02\_Reusability Patterns\_III
 ##### file: DP&BP\_Ch05\_02\_ReusabilityPatterns\_III: The (Tim) Holy Traits Pattern
-##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/08/05 ***
+##### code: Julia/Pluto (1.11.6/0.20.13) by PCM *** 2025/08/06 ***
 
 ====================================================================================
 "
 
 # ╔═╡ 78f7c8cb-a4ef-4e10-adde-135750d7b33a
-md"
-##### 0. Introduction
-*In Julia, traits are a way to define and work with characteristics or behaviors of types, often used for multiple dispatch and defining contracts between types. They are not a built-in language feature but are implemented using multiple dispatch and functions that return information about a type. Traits allow for more flexible and extensible code compared to traditional inheritance, enabling specialized behavior based on type properties.* (Google AI, 2025/08/04)
+md"""
+##### 0. *Introduction* and *Core Idea*
+###### Introduction
+Tim Holy's *Trait Pattern* or *Tim Holy's Trait Trick* (*THTT*) is a *design pattern* made available to the public by Kwong's book DPBP. It is used to enable *type-based behavior selection* - especially when ordinary *multiple dispatch* isn't expressive enough. 
 
-"
+"This pattern allows you to *dispatch on properties (traits)* of types or values that are *not* explicitly *encoded* in their type hierarchy." (OpenAI, 2025/08/06)
+
+###### Core Idea
+
+"Julia's multiple dispatch is powerful, but *sometimes you want to dispatch on a concept that's *orthogonal* to the type hierarchy* (e.g. Is a type *mutable* or not ? Is a container *dense* or not ? Does a type support some *behavior* or not?).
+
+These *aren't* always *encoded* in the type system directly. That's where *traits* come in." (OpenAI, 2025/08/06)
+
+"""
 
 # ╔═╡ 032b9649-86fc-4d47-a036-7c0e75805d75
 md"
 ---
 ##### 1. Topics
+"
+
+# ╔═╡ af9a47bb-0dd9-493d-b0e0-51bc32a17f81
+md"
+- *abstract* vs. *concrete* type
+- *structs* with *fields*
+- *constructors*
 "
 
 # ╔═╡ 59061873-db12-49e9-b4ae-3f614de56954
@@ -56,43 +72,42 @@ md"
 # ╔═╡ 00ed909b-6ed1-4d5d-9962-8c0ba7f68f40
 md"
 ---
-###### 3.1 Hierarchy of *Types* and Marking of *Traits*
+###### 3.1 Hierarchical Graph of *Types* and *Trait* Markings
 (cf. Kwong, 2020, p.181, p.183, p.184f.)
 "
 
 # ╔═╡ cecdd3c8-63a1-4909-9a7a-2488bc4f2304
 md"
 
-                                                   +===========+
-                                                   | Asset (-) |
-                                                   +=====+=====+
-                                                         ^
-                                                         |
-                    +------------------------------------+-------------------+
-                    ^                                    ^                   ^     
-                    |                                    |                   |
-             +======+=======+                    +=======+========+     +====+====+
-             | Property (-) |                    | Investment (+) |     | Cash(+) |
-             +======+=======+                    +=======+========+     +====+====+
-                    ^                                    ^                   ^
-                    |                                    |                   |
-           +--------+-------+                  +---------+-------+      +----+----+
-           ^                ^                  ^                 ^      |  Money  |
-           |                |                  |                 |      +---------+
-           |                |                  |                 |
-     +=====+=====+  +=======*======+  +========+=======+  +======+======+
-     | House (-) |  | Apartment(-) |  | FixedIncome(+) |  |  Equity (+) |
-     +=====+=====+  +==============+  +========+=======+  +======+======+
-           ^                                   ^                 ^
-           |                                   |                 |
-           |                                   |                 |
-    +------+--------+                 +--------+-------+  +------+------+
-    | Residence (-) |                 | TreasuryBill(+)|  |  Stock (+)  |
-    +---------------+                 +----------------+  +-------------+            
+                                                +===========+
+                                                | Asset (-) |
+                                                +=====+=====+
+                                                      ^
+                                                      |
+                   +----------------------------------+-------------------+
+                   ^                                  ^                   ^     
+                   |                                  |                   |
+           +=======+=======+                 +========+========+    +=====+=====+
+           | Property (-)  |                 | Investment (+)  |    |  Cash (+) |
+           +=======+=======+                 +========+========+    +=====+=====+
+                   ^                                  ^                   ^
+                   |                                  |                   |
+           +-------+-------+                 +--------+--------+    +-----+-----+
+           ^               ^                 ^                 ^    | Money (+) |
+           |               |                 |                 |    +-----------+
+           |               |                 |                 |
+     +=====+=====+  +======*======+  +=======+=======+  +======+======+
+     | House (-) |  | Apartment(-)|  |FixedIncome(+) |  |  Equity (+) |
+     +=====+=====+  +=============+  +=======+=======+  +======+======+
+           ^                                 ^                 ^
+           |                                 |                 |
+    +------+------+                  +-------+-------+  +------+------+
+    | Residence(-)|                  |TreasuryBill(+)|  |  Stock (+)  |
+    +-------------+                  +---------------+  +-------------+            
   
 
 
-**Fig. 5.3.1**: Hierarchy of *Types* (*Abstract* (=), *Concrete* (-)) and Marks of *Trait* ((+) = $IsLiquid()$, (-) = $IsIlliquid()$) of Personal *Assets* (cf. Kwong, 2020, p.181, p.183, p.184f.)  
+**Fig. 5.3.1**: Hierarchy of *Types* {*Abstract* (=), *Concrete* (-)} and Markings of *Trait* {(+) = $IsLiquid()$, (-) = $IsIlliquid()$} of Personal *Assets* (cf. Kwong, 2020, p.181, p.183, p.184f.)  
 "
 
 # ╔═╡ 079bb9bd-1201-4652-9443-6982de896414
@@ -155,7 +170,8 @@ md"
 ###### 3.4 Defining the *Tree* of *Trait* Types
 (cf. Kwong, 2020, p.184; modified)
 
-We changed some literals so that the discrimination of *types* and *traits* becomes more discriminable.
+The *trait* of interest is an *abstract type* and the *trait values* are *concrete subtypes*.
+We changed some of Kwong's literals so that the discrimination of *types* and *traits* becomes more discriminable.
 "
 
 # ╔═╡ 15d00b86-55af-4b5c-9b00-bba1b4a73092
@@ -163,7 +179,6 @@ md"
 
                                +========+========+
                                |    Liquidity    |
-                               |   (abstract)    |
                                +========+========+
                                         |
                                        / \
@@ -173,7 +188,6 @@ md"
                                /                 \
                         +------------+     +------------+
                         |  IsLiquid  |     | IsIlLiquid |
-                        | (concrete) |     | (concrete) |
                         +------------+     +------------+
                                          
 
@@ -182,51 +196,60 @@ md"
 "
 
 # ╔═╡ 50af0e51-e232-4f49-8935-8118f78aa513
-begin    # hierarchy of traits
+begin    # hierarchy of traits (Kwong, 2020, p.184f)
 	abstract type Liquidity        end     # abstract type
-	struct IsLiquid   <: Liquidity end     # concrete type == specific trait
-	struct IsIlliquid <: Liquidity end     # concrete type == specific trait
+	struct IsLiquid   <: Liquidity end     # concrete type == trait value
+	struct IsIlliquid <: Liquidity end     # concrete type == trait value
 	#------------------------------------------------------------------------------
 end # begin
 
 # ╔═╡ 5af0d88b-38cf-4641-a94d-c2b1898cc051
 md"
 ---
-###### 3.5 Identifying Traits (= Mapping of Asset-*Types* to Liquidity-*Traits*)
+###### 3.5 Tim-Holy-Trait-Trick (= THTT): Identifying Traits 
+(= returning *Trait-values* to *Types* or *Instances*)
 (cf. Kwong, 2020, p.184f; modified)
 
-We modified Kwong's code two times: 
-- *First*, because Pluto could not distinguish between *abstract types* and *functions* when they bear *identical* names (e.g. Kwong's $LiquidityStyle$). In this case we modified *function* names so that they start with *small* letters: from e.g. $L...(.)$ to $l...(.)$.
-- *Second*, because $liquidity$ should also accept *instances* of *assets* like e.g. the instances in the *test functions*
+$liquidity: Types \cup Typeinstances \rightarrow Traitvalues$ 
+$liquidity: type \mapsto traitvalue$
+$liquidity: typeinstance \mapsto traitvalue$
+
+We modified Kwong's code because of two reasons: 
+- *First*, because Pluto had problems to distinguish *abstract types* from *functions* with *identical* names (e.g. Kwong's $LiquidityStyle$). In this case we changed *function* names so that they start with *small* letters: from e.g. $L...(.)$ to $l...(.)$.
+- *Second*, because $liquidity$ should also diagnose the *traitness* of *instances* of assets we created new specific *methods*.
 "
 
 # ╔═╡ ca1316d4-eeaf-49ad-8aa9-ae1cabfcc17f
-typeof(Type)
+typeof(Type)                    # what does Type mean ?
 
 # ╔═╡ 28992f89-7b49-483a-b593-62e2f112b973
-supertype(Type)
+supertype(Type)                 # what supertype has Type ?
 
 # ╔═╡ 44d5bef4-8386-406a-9f74-f38532ada5f9
-subtypes(Type)
+subtypes(Type)                  # what subtypes has Type ?
 
 # ╔═╡ 1be2deac-d404-44fe-99b2-5bbaede4dab0
 Asset <: Type, Asset isa Type, Property isa Type, Cash isa Type
 
 # ╔═╡ 2a84123a-ff7b-4aa7-94d7-5d2d90ad8c46
-Money("USD", 100.00) isa Type, Money("USD", 100.00) isa Cash, Money("USD", 100.00) isa Asset
+Money("USD", 100.00) isa Type, Money("USD", 100.00) isa Cash, Money("USD", 100.00) isa Asset                       # what type have asset instances ?
 
 # ╔═╡ 69e6097d-0da6-4761-b827-76c4438dff7e
-# function liquidity (small letter 'l') assigns 
-#    asset types (data types; left) to liquidity traits (right)
-begin
+# function liquidity (small letter 'l') assigns liquidity trait values (right) 
+#   to asset types (data types; left)
+# Tim-Holy-Trait_trick(THTT): function liquidity checks whether type has trait or not
+#------------------------------------------------------------------------------------
+begin  #  types (= assets)         <== trait values
+	#--------------------------------------------------------------------------------
 	liquidity(::Type)               = IsIlliquid() # default
 	liquidity(::Type{<:Cash})       = IsLiquid()   # Cash and its ...
 	liquidity(::Type{<:Investment}) = IsLiquid()   # Investment ...
-	#------------------------------------------------------------------------------
+	#--------------------------------------------------------------------------------
 	# new: for asset instances
-	liquidity(assetInstance::T) where {T <: Asset}      = IsIlliquid()
-	liquidity(assetInstance::T) where {T <: Cash}       = IsLiquid() # Cash ...
-	liquidity(assetInstance::T) where {T <: Investment} = IsLiquid() # Investment ...
+	liquidity(assetInstance::T) where {T<:Asset}      = IsIlliquid()
+	liquidity(assetInstance::T) where {T<:Cash}       = IsLiquid() # Cash ...
+	liquidity(assetInstance::T) where {T<:Investment} = IsLiquid() # Investment ...
+	#--------------------------------------------------------------------------------
 end
 
 # ╔═╡ d557a958-bb48-4651-a693-d09321e6948e
@@ -253,7 +276,7 @@ end # begin
 # ╔═╡ 0a240e98-0e02-40cc-8266-6730732fd4a1
 md"
 ---
-###### 3.6 Implementing Trait *Behavior*
+###### 3.6 Implementing Trait *Behavior* (Dispatch *Based on* the Trait)
 (cf. Kwong, 2020, p.185; modified)
 
 We modified in Kwong's code of $tradable$ the function name $LiquidityStyle$ to $liquidity$.
@@ -272,7 +295,7 @@ Here we modified the code slightly and introduced a *second* method of $tradabil
 # The assetType (kwong's 'thing') is tradable if is liquid
 begin
 	tradability(assetType::Type) = 
-		tradability(assetType, liquidity(assetType))         
+		tradability(assetType, liquidity(assetType)) 
 	tradability(assetInstance::T) where {T <: Asset} =                 # new
 		tradability(assetInstance, liquidity(typeof(assetInstance)))   # new
 	tradability(typeOrInstance, ::IsLiquid)   = true
@@ -410,10 +433,19 @@ end # function traitTestResidence
 traitTestBond()
 
 # ╔═╡ 75ea9269-4e61-4cf7-b763-dab5588f6788
-md"
+md"""
 ---
-##### 4. Summary
-"
+##### 4. Summary 
+
+- "Works for types outside your control: You can define trait behavior for external types without needing to change their source.
+
+- Extensible: New behaviors can be added for new traits easily.
+
+- Non-invasive: No need to use inheritance or complicated type hierarchies.
+
+- Fast: Trait dispatch happens at compile time, so no runtime overhead."
+(OpenAI, 2025/08/06)
+"""
 
 # ╔═╡ ac91d782-edcb-4ce9-ad5e-43e317fef1f8
 md"
@@ -421,6 +453,7 @@ md"
 ##### 5. References
 - **Kwong, T.**; Hands On Design Patterns and Best Practices, Birmingham, UK: Packt, 2020
 - **Kwong, T.**; [*Holy Traits Pattern (book excerpt)*](https://ahsmart.com/pub/holy-traits-design-patterns-and-best-practice-book/); last visit 2025/08/03
+- **OpenAI**; [*ChatGPT's answer to question: What are the specifics of Tim Holy's Trait Pattern?*]; questioned 2025/08/06
 - **Wikipedia**; [*Trait*](https://en.wikipedia.org/wiki/Trait_(computer_programming)); last visit 2020/08/03
 "
 
@@ -1671,6 +1704,7 @@ version = "1.4.1+2"
 # ╟─1a81a8f0-67b2-11f0-0ba2-df5c5cb9fc9d
 # ╟─78f7c8cb-a4ef-4e10-adde-135750d7b33a
 # ╟─032b9649-86fc-4d47-a036-7c0e75805d75
+# ╟─af9a47bb-0dd9-493d-b0e0-51bc32a17f81
 # ╟─59061873-db12-49e9-b4ae-3f614de56954
 # ╠═694764be-9d9d-4a9f-ae9a-cac4e6ad37da
 # ╟─737856e3-d88c-43e5-a370-3202d73e1b09
