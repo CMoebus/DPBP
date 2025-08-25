@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.15
+# v0.20.16
 
 using Markdown
 using InteractiveUtils
@@ -35,7 +35,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_03\_Performance Patterns\_III: The Shared Array Pattern PtI
 ##### file: DP&BP\_Ch06\_03\_PerformancePatterns\_III\_PtI
-##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/22 ***
+##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/25 ***
 
 ===================================================================================
 "
@@ -66,75 +66,94 @@ md"
 md"
 ---
 ##### 3. Code
-Kwong's published code was developed for the Linux/Ubuntu OS. We modified the code for Windows 10/11.
+Kwong's code was developed for Linux/Ubuntu operating systems. We had to adapt the code for Windows 10/11. We used two Surface notebooks: $PCM2017$ and $PCM2021$. Because of the limited sizes of the Surface notebooks we had to downsize the problem.
 "
 
 # ╔═╡ ad9eb1ef-f823-4b54-a0c9-3a6a480cfa1d
-md"
+md"""
+---
 ###### 3.1 Preparing Test Data for the Example
 (cf. Kwong, 2020, p.230f)
+
 The *scenario* is like this:
 
-*Coming back to our simulation example, we can generate $10E4$ possible future scenarios of the portfolio, and the results are basically a set of returns across all such scenarios. The returns data is stored on disk and is now ready for additional analysis.* 
+*Here comes the problem - An asset manager has to analyze over $1k$ portfolios, and each portfolio may  require to access to return data varying between $10k$ to $50k$ bonds depending on the size of the benchmark index. How can we fully utilize our hardware to perform the analysis as quickly as possible? Unfortunately, the production server is limited in memory but has plenty of CPU resources. How can we fully utilize our hardware to perform the analysis as quickly as possible?* (Kwong, 2020, p.230)
 
-*Here comes the problem - An asset manager has to analyze over 1000 portfolios, and each portfolio may  require to access to return data varying between 10000 to 50000 bonds depending on the size of the benchmark index. How can we fully utilize our hardware to perform the analysis as quickly as possible? Unfortunately, the production server is limited in memory but has plenty of CPU resources. How can we fully utilize our hardware to perform the analysis as quickly as possible?* (Kwong, 2020, p.230)
+These are the constraints of the downsized problem:
 
-*Hardware* constraints are:
-- 16 vCPU (virtual CPU)
-- 32 GB RAM
+- for 50K securities
+- for  50 directories
+-      5K monte carlo simulated future states
+-       3 return attributes
+-       8 bytes
+
+- Total memory footprint (GiB)
+    - securities * states * attributes * bytes / 1024 / 1024 / 1024 = *m GiB*
+	- 50K * 5K * 3 * 8 / 1024 / 1024 / 1024 ==> 5.587935447692871 GiB
 
 *Software* constraints are:
-- *security returns* data are stored in $10E5$ individual *files*
-- the $10E5$ *files* are distributed across $10E2$ *directories*
+- *50K* *security returns* data are stored in *50K* individual *files*
+- the *50k* *files* are distributed across *50* *directories*
 - *directories* are located in folder: 
-		C:/Home-Cloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data/
-- each *file* contains a *matrix* ((10E4 rows, 3 columns) = (*future states*, *return sources*))
-- *total* memory footprint is ~22 GB
+	- on PCM2017: 
+		"C:/Home-Cloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
+	- on PCM2021: 
+		"C:/Users/claus/Nextcloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
+"""
 
-*Task* Specification:
-- calculate descriptive statistical measures (e.g. standard deviation, skewness, kurtosis) for all security returns across the 10E4 future states.
-- do that as quickly as possible !
+# ╔═╡ 9302e37f-7dac-440f-8bcd-016718a81703
+50000 * 5000 * 3 * 8 / 1024 / 1024 / 1024 == 5.587935447692871
 
-"
-
-# ╔═╡ 489c1dc9-f1b6-4c9e-81ba-d7b57d833617
-myCurrentWorkingDirectory = pwd()            # get current working directory (= CWD)
-
-# ╔═╡ 9f21670e-46ce-4e2c-a7ec-363c7b4ed9b1
-dataDirectoryFolder = "DP&BP_ch06_data"
-
-# ╔═╡ 8ebfdb20-77e2-4f48-be6d-2744e14c14a2
-pathToDataDirectoryFolder =                  # put dataDirectoriesFolder into CWD
-	joinpath(myCurrentWorkingDirectory, dataDirectoryFolder)
-
-# ╔═╡ 6e4f61d9-d069-4907-a8bc-a3433cd64343
-pathToDataDirectoryFolder
-
-# ╔═╡ 347b4fb5-fa9a-4f6c-b599-7ed3e48a140f
-pathToDataDirectoryFolderExplicit =  # raw"..." is string macro
+# ╔═╡ 9c350c44-6a1d-482c-9f6e-616cd3636581
+pathToDataDirectoryFolder1 =                 # Surface PCM2017
 	raw"C:\Home-Cloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
 
-# ╔═╡ 20872d1c-ea4a-44af-afd7-da8c97a8ae34
-pathToDataDirectoryFolder == pathToDataDirectoryFolderExplicit
+# ╔═╡ 598b4f90-de15-4ec8-becd-3243b43bea23
+pathToDataDirectoryFolder2 =                 # Surface PCM 2021
+	raw"C:\Users\claus\Nextcloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
 
-# ╔═╡ ec1e2afc-36e6-49ba-b28c-7260c63b3d8f
-try
-	mkdir(pathToDataDirectoryFolder)             # path + folder "DP&BP_ch06_data"
+# ╔═╡ 27c0f7b1-bf78-453f-a7cb-fe8e259f9a31
+pwd()
+
+# ╔═╡ a53bde3b-e7b2-47ba-8c10-85bcc5457ab2
+pathToDataDirectoryFolder = # this working directory
+	if pwd() == pathToDataDirectoryFolder1
+		println("case I")
+		pathToDataDirectoryFolder1
+	elseif pwd() == pathToDataDirectoryFolder2
+		println("case II")
+		pathToDataDirectoryFolder2
+	elseif joinpath(pwd(),"DP&BP_ch06_data") == pathToDataDirectoryFolder1
+		println("case III")
+		pathToDataDirectoryFolder1
+	elseif joinpath(pwd(),"DP&BP_ch06_data") == pathToDataDirectoryFolder2
+		println("case IV")
+		pathToDataDirectoryFolder2
+	else
+		println("unknown working directory $(joinpath(pwd(),"DP&BP_ch06_data"))")
+	end # if
+
+# ╔═╡ 9bc6c97d-802c-43b5-bedc-39810ea7cd5d
+pwd()
+
+# ╔═╡ 5ce20665-fe0c-4ce9-a338-c1c82e5051c2
+pathToDataDirectoryFolder
+
+# ╔═╡ 3ca0e097-bd01-4ec5-bb16-3260ab69c8ce
+try 
+	mkdir(pathToDataDirectoryFolder)
 catch exception
-	println("pathToDataDirectoryFolder is already existent with message: $exception")
+	println("mkdir(pathToDataDirectoryFolder) failed because: $exception")
 end # try-catch
 
-# ╔═╡ e2fa3fa8-cadf-46c5-b393-1f1089687d3e
-pwd()                                            # current working directory
-
-# ╔═╡ 16444b8d-9b24-4264-96e9-f19dbbb36513
+# ╔═╡ 067e2d5b-ffda-48ea-9ad1-40b21fefead2
 cd(pathToDataDirectoryFolder)
 
 # ╔═╡ 2528839c-7ff1-4b50-b55e-52d54e804273
 pwd()                                            # get the current working directory
 
 # ╔═╡ caf8c874-d7ee-4833-8751-5c27d7c12736
-function makeDataDirectories(;nSubdirectories=100) # Kwong, 2020, p.231
+function makeDataDirectories(;nSubdirectories=50) # Kwong, 2020, p.231
 	for i in 0:nSubdirectories-1
 		mkdir("$i")
 	end # for
@@ -144,25 +163,26 @@ end # function makeDataDirectories
 try 
 	makeDataDirectories()
 catch exception
-	println("directories already existent; message is $exception")
+	println("directories already exist; message is $exception")
 end # try-catch
 
 # ╔═╡ ede719be-906e-4cc4-b7ca-17f9fb50a115
-# directories are in folder: 
-#          C:/Home-Cloud/PCM_Book/PCM2025_Book/DP&BP/
-#--------------------------------------------------------------------------------
+# directories are  
+#     in folder: "C:\Home-Cloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
+#  or in:     "C:\Users\claus\Nextcloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
+#-----------------------------------------------------------------------------------
 myDirectoryFolder =                         # folders are ...
 	filter(name -> isdir(name), readdir())  # look after directories
 
 # ╔═╡ 59376f0f-4cc0-42b3-bd21-9b294fd69e44
 function locateFileOfSecurity(index)        # securities are distributed
 	id = index - 1                          #   across directories
-	directory = string(id % 100)
+	directory = string(id % 50)
 	joinpath(directory, "security$(id).dat")
 end # function locateFileOfSecurity
 
 # ╔═╡ c28ec587-a61b-4e72-bc84-f41a10b788fe
-locateFileOfSecurity.(vcat(1:2, 100:101))
+locateFileOfSecurity.(vcat(1:2, 50:51))
 
 # ╔═╡ 220160f0-3ecb-45c2-9a51-7cde6c8f6c85
 pathToDataDirectoryFolder                   # path to the data folder
@@ -175,7 +195,7 @@ typeof(A)
 
 # ╔═╡ 1439798f-d77d-40e1-bef4-a35112b9d434
 function generateTestData(
-	; nFiles=100, nFutureStates::Int64=10000, nSourcesOfReturns::Int64=3)
+	; nFiles=50, nFutureStates::Int64=5000, nSourcesOfReturns::Int64=3)
 	#----------------------------------------------------------------------------
 	for i in 1:nFiles
 		# typeof(A) Matrix{Float64}
@@ -201,17 +221,11 @@ function generateTestData(
 	#----------------------------------------------------------------------------
 end # function generateTestData
 
-# ╔═╡ 48533069-1c60-4a29-9d2b-4e11027ff5fd
-# generateTestData(nFiles=1)
-
-# ╔═╡ d15652bc-b121-49fd-a239-2ad7ef5e613a
-# generateTestData(nFiles=2)
-
 # ╔═╡ f711ff9e-ee32-4bc0-96f7-fe316068993d
 generateTestData()
 
 # ╔═╡ 82aa463a-7647-4350-81d9-3f6b952243ef
-function readTestData(;nFiles=100, nFutureStates::Int64=10000, nSourcesOfReturns::Int64=3)
+function readTestData(;nFiles=50, nFutureStates::Int64=5000, nSourcesOfReturns::Int64=3)
 	for i in 1:nFiles
 		file = locateFileOfSecurity(i)
 		println("------------------------")
@@ -226,9 +240,6 @@ function readTestData(;nFiles=100, nFutureStates::Int64=10000, nSourcesOfReturns
 		end # for j
 	end # for i
 end # function readTestData
-
-# ╔═╡ 9b6fe61d-e745-406e-9eed-e8577e89185d
-# readTestData(nFiles=1)
 
 # ╔═╡ 2d01a726-9fd1-4886-8cf6-6e7026ce52d1
 readTestData()
@@ -679,15 +690,15 @@ version = "17.4.0+2"
 # ╠═24dcf6da-9aa9-4285-8749-95cdf818df71
 # ╟─b91f0716-7e93-41f2-a4eb-49a1ebfabe25
 # ╟─ad9eb1ef-f823-4b54-a0c9-3a6a480cfa1d
-# ╠═489c1dc9-f1b6-4c9e-81ba-d7b57d833617
-# ╠═9f21670e-46ce-4e2c-a7ec-363c7b4ed9b1
-# ╠═8ebfdb20-77e2-4f48-be6d-2744e14c14a2
-# ╠═6e4f61d9-d069-4907-a8bc-a3433cd64343
-# ╠═347b4fb5-fa9a-4f6c-b599-7ed3e48a140f
-# ╠═20872d1c-ea4a-44af-afd7-da8c97a8ae34
-# ╠═ec1e2afc-36e6-49ba-b28c-7260c63b3d8f
-# ╠═e2fa3fa8-cadf-46c5-b393-1f1089687d3e
-# ╠═16444b8d-9b24-4264-96e9-f19dbbb36513
+# ╠═9302e37f-7dac-440f-8bcd-016718a81703
+# ╠═9c350c44-6a1d-482c-9f6e-616cd3636581
+# ╠═598b4f90-de15-4ec8-becd-3243b43bea23
+# ╠═27c0f7b1-bf78-453f-a7cb-fe8e259f9a31
+# ╠═a53bde3b-e7b2-47ba-8c10-85bcc5457ab2
+# ╠═9bc6c97d-802c-43b5-bedc-39810ea7cd5d
+# ╠═5ce20665-fe0c-4ce9-a338-c1c82e5051c2
+# ╠═3ca0e097-bd01-4ec5-bb16-3260ab69c8ce
+# ╠═067e2d5b-ffda-48ea-9ad1-40b21fefead2
 # ╠═2528839c-7ff1-4b50-b55e-52d54e804273
 # ╠═caf8c874-d7ee-4833-8751-5c27d7c12736
 # ╠═a42062f2-9c40-42af-b1bb-200ac544b8e9
@@ -698,11 +709,8 @@ version = "17.4.0+2"
 # ╠═ee4c48df-c807-4e76-a6df-8bc724b1d375
 # ╠═49a0bc43-6549-4ed0-85f1-7698c27040f6
 # ╠═1439798f-d77d-40e1-bef4-a35112b9d434
-# ╠═48533069-1c60-4a29-9d2b-4e11027ff5fd
-# ╠═d15652bc-b121-49fd-a239-2ad7ef5e613a
 # ╠═f711ff9e-ee32-4bc0-96f7-fe316068993d
 # ╠═82aa463a-7647-4350-81d9-3f6b952243ef
-# ╠═9b6fe61d-e745-406e-9eed-e8577e89185d
 # ╠═2d01a726-9fd1-4886-8cf6-6e7026ce52d1
 # ╟─db848019-b61f-485e-96f1-b5cab853113c
 # ╟─8823b6c9-ca63-4a12-8467-620c869811b8
