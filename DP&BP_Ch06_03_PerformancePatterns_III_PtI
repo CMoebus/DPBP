@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.16
+# v0.20.15
 
 using Markdown
 using InteractiveUtils
@@ -35,7 +35,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_03\_Performance Patterns\_III: The Shared Array Pattern PtI
 ##### file: DP&BP\_Ch06\_03\_PerformancePatterns\_III\_PtI
-##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/25 ***
+##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/26 ***
 
 ===================================================================================
 "
@@ -44,6 +44,11 @@ md"
 md"
 ---
 ##### 0. Introduction
+(Kwong, 2020, p.230)
+
+The *scenario* is like this:
+
+*Here comes the problem - An asset manager has to analyze over $1k$ portfolios, and each portfolio may require to access to return data varying between $10k$ to $50k$ bonds depending on the size of the benchmark index. How can we fully utilize our hardware to perform the analysis as quickly as possible? Unfortunately, the production server is limited in memory but has plenty of CPU resources. How can we fully utilize our hardware to perform the analysis as quickly as possible?* (Kwong, 2020, p.230)
 "
 
 # ╔═╡ 36b8f30b-0557-46af-805f-f515bfed0eb6
@@ -66,7 +71,7 @@ md"
 md"
 ---
 ##### 3. Code
-Kwong's code was developed for Linux/Ubuntu operating systems. We had to adapt the code for Windows 10/11. We used two Surface notebooks: $PCM2017$ and $PCM2021$. Because of the limited sizes of the Surface notebooks we had to downsize the problem.
+Kwong's code was developed for Linux/Ubuntu operating systems. We had to adapt the code for Windows 10/11. We used two Surface notebooks: $PCM2017$ and $PCM2021$. Because of the limited sizes of the Surface notebooks we had to *downsize* the problem.
 "
 
 # ╔═╡ ad9eb1ef-f823-4b54-a0c9-3a6a480cfa1d
@@ -75,25 +80,14 @@ md"""
 ###### 3.1 Preparing Test Data for the Example
 (cf. Kwong, 2020, p.230f)
 
-The *scenario* is like this:
+These are the constraints of the *downsized* problem:
 
-*Here comes the problem - An asset manager has to analyze over $1k$ portfolios, and each portfolio may  require to access to return data varying between $10k$ to $50k$ bonds depending on the size of the benchmark index. How can we fully utilize our hardware to perform the analysis as quickly as possible? Unfortunately, the production server is limited in memory but has plenty of CPU resources. How can we fully utilize our hardware to perform the analysis as quickly as possible?* (Kwong, 2020, p.230)
+- 10K securities (= *nFiles*)
+- 5K monte carlo simulated future states (= *nStates*)
+- 3 return attributes (= *nAttr*)
+- 50 directories
+- nFiles * nStates * nAttr * 8 = 10000 * 5000 * 3 * 8 = 1.200.000.000 = 1.2 GiB
 
-These are the constraints of the downsized problem:
-
-- for 50K securities
-- for  50 directories
--      5K monte carlo simulated future states
--       3 return attributes
--       8 bytes
-
-- Total memory footprint (GiB)
-    - securities * states * attributes * bytes / 1024 / 1024 / 1024 = *m GiB*
-	- 50K * 5K * 3 * 8 / 1024 / 1024 / 1024 ==> 5.587935447692871 GiB
-
-*Software* constraints are:
-- *50K* *security returns* data are stored in *50K* individual *files*
-- the *50k* *files* are distributed across *50* *directories*
 - *directories* are located in folder: 
 	- on PCM2017: 
 		"C:/Home-Cloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
@@ -101,8 +95,13 @@ These are the constraints of the downsized problem:
 		"C:/Users/claus/Nextcloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
 """
 
-# ╔═╡ 9302e37f-7dac-440f-8bcd-016718a81703
-50000 * 5000 * 3 * 8 / 1024 / 1024 / 1024 == 5.587935447692871
+# ╔═╡ 839aedcc-2157-4971-9b7c-e89f738c2de2
+begin
+	nFiles       = 10000
+	nStates      =  5000
+	nAttr        =     3
+	nDirectories =    50
+end # begin
 
 # ╔═╡ 9c350c44-6a1d-482c-9f6e-616cd3636581
 pathToDataDirectoryFolder1 =                 # Surface PCM2017
@@ -153,7 +152,7 @@ cd(pathToDataDirectoryFolder)
 pwd()                                            # get the current working directory
 
 # ╔═╡ caf8c874-d7ee-4833-8751-5c27d7c12736
-function makeDataDirectories(;nSubdirectories=50) # Kwong, 2020, p.231
+function makeDataDirectories(;nSubdirectories=nDirectories) # Kwong, 2020, p.231
 	for i in 0:nSubdirectories-1
 		mkdir("$i")
 	end # for
@@ -195,8 +194,8 @@ typeof(A)
 
 # ╔═╡ 1439798f-d77d-40e1-bef4-a35112b9d434
 function generateTestData(
-	; nFiles=50, nFutureStates::Int64=5000, nSourcesOfReturns::Int64=3)
-	#----------------------------------------------------------------------------
+	; nFiles=nFiles, nFutureStates::Int64=nStates, nSourcesOfReturns::Int64=nAttr)
+	#-----------------------------------------------------------------------------
 	for i in 1:nFiles
 		# typeof(A) Matrix{Float64}
 		A = rand(nFutureStates::Int, nSourcesOfReturns::Int)::Matrix{Float64}
@@ -225,7 +224,8 @@ end # function generateTestData
 generateTestData()
 
 # ╔═╡ 82aa463a-7647-4350-81d9-3f6b952243ef
-function readTestData(;nFiles=50, nFutureStates::Int64=5000, nSourcesOfReturns::Int64=3)
+function readTestData(
+	; nFiles=nFiles, nFutureStates::Int64=nStates, nSourcesOfReturns::Int64=nAttr)
 	for i in 1:nFiles
 		file = locateFileOfSecurity(i)
 		println("------------------------")
@@ -690,7 +690,7 @@ version = "17.4.0+2"
 # ╠═24dcf6da-9aa9-4285-8749-95cdf818df71
 # ╟─b91f0716-7e93-41f2-a4eb-49a1ebfabe25
 # ╟─ad9eb1ef-f823-4b54-a0c9-3a6a480cfa1d
-# ╠═9302e37f-7dac-440f-8bcd-016718a81703
+# ╠═839aedcc-2157-4971-9b7c-e89f738c2de2
 # ╠═9c350c44-6a1d-482c-9f6e-616cd3636581
 # ╠═598b4f90-de15-4ec8-becd-3243b43bea23
 # ╠═27c0f7b1-bf78-453f-a7cb-fe8e259f9a31
