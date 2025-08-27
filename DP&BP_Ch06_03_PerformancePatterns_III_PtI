@@ -35,7 +35,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_03\_Performance Patterns\_III: The Shared Array Pattern PtI
 ##### file: DP&BP\_Ch06\_03\_PerformancePatterns\_III\_PtI
-##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/26 ***
+##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/27 ***
 
 ===================================================================================
 "
@@ -176,7 +176,7 @@ myDirectoryFolder =                         # folders are ...
 # ╔═╡ 59376f0f-4cc0-42b3-bd21-9b294fd69e44
 function locateFileOfSecurity(index)        # securities are distributed
 	id = index - 1                          #   across directories
-	directory = string(id % 50)
+	directory = string(id % nDirectories)   # mod(id, nDirectories)
 	joinpath(directory, "security$(id).dat")
 end # function locateFileOfSecurity
 
