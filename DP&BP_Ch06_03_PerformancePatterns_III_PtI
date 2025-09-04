@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.15
+# v0.20.16
 
 using Markdown
 using InteractiveUtils
@@ -35,7 +35,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_03\_Performance Patterns\_III: The Shared Array Pattern PtI
 ##### file: DP&BP\_Ch06\_03\_PerformancePatterns\_III\_PtI
-##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/08/27 ***
+##### code: Julia/Pluto (1.11.6/0.20.15) by PCM *** 2025/09/04 ***
 
 ===================================================================================
 "
@@ -55,10 +55,7 @@ The *scenario* is like this:
 md"
 ---
 ##### 1. Topics
-- *portfolio* risk
-- *systematic* risk
-- *idiosyncratic* risk
-- *currency* risk
+- *SharedArray*
 "
 
 # ╔═╡ cf3b658e-0d5d-4e37-99cc-e020cbb9504e
@@ -71,7 +68,7 @@ md"
 md"
 ---
 ##### 3. Code
-Kwong's code was developed for Linux/Ubuntu operating systems. We had to adapt the code for Windows 10/11. We used two Surface notebooks: $PCM2017$ and $PCM2021$. Because of the limited sizes of the Surface notebooks we had to *downsize* the problem.
+Kwong's code was developed for Linux/Ubuntu operating systems. We had to adapt the code for Windows 10/11. We used Plut-notebooks and VS-code on two Surface notebooks: $PCM2017$ and $PCM2021$. Because of the limited sizes of the Surface notebooks we had to *downsize* the problem.
 "
 
 # ╔═╡ ad9eb1ef-f823-4b54-a0c9-3a6a480cfa1d
@@ -82,17 +79,22 @@ md"""
 
 These are the constraints of the *downsized* problem:
 
-- 10K securities (= *nFiles*)
-- 5K monte carlo simulated future states (= *nStates*)
+- 10K securities (= *nFiles*); these are distributed equally over *nDirectories*
+- 5K Monte Carlo simulated future states (= *nStates*)
 - 3 return attributes (= *nAttr*)
-- 50 directories
-- nFiles * nStates * nAttr * 8 = 10000 * 5000 * 3 * 8 = 1.200.000.000 = 1.2 GiB
+- 50 directories (= *nDirectories*)
+- *nFiles* x *nStates* x *nAttr* x 8 = 10000 x 5000 x 3 x 8 = 1.200.000.000 = 1.2 GiB
 
-- *directories* are located in folder: 
-	- on PCM2017: 
+- *directories* are located in folders: 
+	- for Pluto-notebook on Surface PCM2017: 
 		"C:/Home-Cloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
-	- on PCM2021: 
+
+	- for Pluto-notebook on Surface PCM2021: 
 		"C:/Users/claus/Nextcloud/PCM_Book/PCM2025_Book/DP&BP/DP&BP_ch06_data"
+    - for VS-Code on Surface PCM2021: 
+
+		"C:\\Users\\claus\\Nextcloud\\PCM_Book\\PCM2025_Book\\VS-Julia\\DPBP\\ch06_SharedArray\\DP&BP_ch06_data"
+        
 """
 
 # ╔═╡ 839aedcc-2157-4971-9b7c-e89f738c2de2
@@ -104,12 +106,16 @@ begin
 end # begin
 
 # ╔═╡ 9c350c44-6a1d-482c-9f6e-616cd3636581
-pathToDataDirectoryFolder1 =                 # Surface PCM2017
-	raw"C:\Home-Cloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
+pathToDataDirectoryFolder1 =                 # Surface PCM2017, Pluto-notebook
+	"C:\\Home-Cloud\\PCM_Book\\PCM2025_Book\\DP&BP\\DP&BP_ch06_data"
 
 # ╔═╡ 598b4f90-de15-4ec8-becd-3243b43bea23
-pathToDataDirectoryFolder2 =                 # Surface PCM 2021
-	raw"C:\Users\claus\Nextcloud\PCM_Book\PCM2025_Book\DP&BP\DP&BP_ch06_data"
+pathToDataDirectoryFolder2 =                 # Surface PCM 2021, Pluto-notebook
+	"C:\\Users\\claus\\Nextcloud\\PCM_Book\\PCM2025_Book\\DP&BP\\DP&BP_ch06_data"
+
+# ╔═╡ 86fbbbcb-f869-457f-b738-55e774a14078
+pathToDataDirectoryFolder3 =                 # Surface PCM 2021, VS-code
+    "C:\\Users\\claus\\Nextcloud\\PCM_Book\\PCM2025_Book\\VS-Julia\\DPBP\\ch06_SharedArray\\DP&BP_ch06_data"
 
 # ╔═╡ 27c0f7b1-bf78-453f-a7cb-fe8e259f9a31
 pwd()
@@ -128,6 +134,9 @@ pathToDataDirectoryFolder = # this working directory
 	elseif joinpath(pwd(),"DP&BP_ch06_data") == pathToDataDirectoryFolder2
 		println("case IV")
 		pathToDataDirectoryFolder2
+	elseif joinpath(pwd(),"DP&BP_ch06_data") == pathToDataDirectoryFolder3
+		println("case V")
+		pathToDataDirectoryFolder3
 	else
 		println("unknown working directory $(joinpath(pwd(),"DP&BP_ch06_data"))")
 	end # if
@@ -200,24 +209,24 @@ function generateTestData(
 		# typeof(A) Matrix{Float64}
 		A = rand(nFutureStates::Int, nSourcesOfReturns::Int)::Matrix{Float64}
 		file = locateFileOfSecurity(i)
-		println("------------------------")
-		println("file = $file") 
-		println("typeof(A) = $(typeof(A))")
-		#= Kwong's code ...
+        #= Kwong's code ...
 			open(file, "w") do io  
 				write(io, A)     
 			end # open do
 		... is replaced by open(io -> write(io, A), file, "w")
 		=#
-		open(io -> write(io, A), file, "w")
-		for j in 1:nFutureStates
-			if (1 <= j <= 2) || (nFutureStates-1 <= j <= nFutureStates)
-				Aj = A[j, :]
-				println("row $j: $Aj")
-			end # if
-		end # for j
+        open(io -> write(io, A), file, "w")
+        if (i == 1) || (i == nFiles)		
+            println("------------------------")
+		    println("directory/file = $file") 
+            for j in 1:nFutureStates
+                if (1 <= j <= 2) || (nFutureStates-1 <= j <= nFutureStates)
+                    Aj = A[j, :]
+                    println("row $j: $Aj")
+                end # if
+            end # for j
+        end # if
 	end # for i
-	#----------------------------------------------------------------------------
 end # function generateTestData
 
 # ╔═╡ f711ff9e-ee32-4bc0-96f7-fe316068993d
@@ -228,16 +237,18 @@ function readTestData(
 	; nFiles=nFiles, nFutureStates::Int64=nStates, nSourcesOfReturns::Int64=nAttr)
 	for i in 1:nFiles
 		file = locateFileOfSecurity(i)
-		println("------------------------")
-		println("file = $file") 
 		data = Matrix{Float64}(undef, nFutureStates, nSourcesOfReturns)
 		open(io -> read!(io::IO, data), file, "r")
-		for j in 1:nFutureStates
-			if (1 <= j <= 2) || (nFutureStates-1 <= j <= nFutureStates)
-				dataj = data[j, :]
-				println("row $j: $dataj")
-			end # if
-		end # for j
+		if (i == 1) || (i == nFiles)		
+            println("------------------------")
+		    println("directory/file = $file") 
+			for j in 1:nFutureStates
+				if (1 <= j <= 2) || (nFutureStates-1 <= j <= nFutureStates)
+					dataj = data[j, :]
+					println("row $j: $dataj")
+				end # if
+			end # for j
+		end # if
 	end # for i
 end # function readTestData
 
@@ -685,7 +696,7 @@ version = "17.4.0+2"
 # ╔═╡ Cell order:
 # ╟─79307f90-7c1e-11f0-10b5-9f94e0be8207
 # ╟─3ee27db2-8db4-4516-91bf-4966877a2290
-# ╟─36b8f30b-0557-46af-805f-f515bfed0eb6
+# ╠═36b8f30b-0557-46af-805f-f515bfed0eb6
 # ╟─cf3b658e-0d5d-4e37-99cc-e020cbb9504e
 # ╠═24dcf6da-9aa9-4285-8749-95cdf818df71
 # ╟─b91f0716-7e93-41f2-a4eb-49a1ebfabe25
@@ -693,6 +704,7 @@ version = "17.4.0+2"
 # ╠═839aedcc-2157-4971-9b7c-e89f738c2de2
 # ╠═9c350c44-6a1d-482c-9f6e-616cd3636581
 # ╠═598b4f90-de15-4ec8-becd-3243b43bea23
+# ╠═86fbbbcb-f869-457f-b738-55e774a14078
 # ╠═27c0f7b1-bf78-453f-a7cb-fe8e259f9a31
 # ╠═a53bde3b-e7b2-47ba-8c10-85bcc5457ab2
 # ╠═9bc6c97d-802c-43b5-bedc-39810ea7cd5d
