@@ -19,9 +19,10 @@ begin
 	# using Distributed
 	# using SharedArrays
 	# using Random
-	using SharedArrays
+	# using SharedArrays
 	# @everywhere using Random
 	# @everywhere using SharedArrays
+	using TraceFuns
 	#----------------------------------------------------------------------
 	println("pkgversion(Pluto)          = ", pkgversion(Pluto))
 	# println("pkgversion(Plots)         = ", pkgversion(Plots))
@@ -36,6 +37,7 @@ begin
 	# println("pkgversion(Distributed)   = ", pkgversion(Distributed))
 	# println("pkgversion(Random)        = ", pkgversion(Random))
 	# println("pkgversion(SharedArrays)  = ", pkgversion(SharedArrays))
+	println("pkgversion(TraceFuns)      = ", pkgversion(TraceFuns))
 	#----------------------------------------------------------------------
 end # begin
 
@@ -44,7 +46,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_04\_Memoization Pattern
 ##### file: DP&BP\_Ch06\_04\_MemoizationPattern
-##### code: Julia/Pluto (1.11.6/0.20.16) by PCM *** 2025/09/12 ***
+##### code: Julia/Pluto (1.11.6/0.20.16) by PCM *** 2025/09/16 ***
 
 ===================================================================================
 "
@@ -54,6 +56,9 @@ md"
 md"
 ---
 ##### 0. Introduction
+By *memoization* we can gain computation speed when *intermediate* results can be obtained by being fetched from a storage instead of being computed a second time. 
+
+In the memoization used here *intermediate* function values are stored in a Julian *dictionary*. As a paradigmatic example we demonstrate this effect with the tree recursive *fibonacci* function. When necessary we deviate from Kwong's code. 
 "
 
 # ╔═╡ f715ff25-f95b-48ba-818f-eac225205dc0
@@ -72,26 +77,81 @@ md"
 md"
 ---
 ##### 3. Code
-###### 3.1 Naive Fibonacci
+###### 3.1 Introducing the Naive *Fibonacci* Function
 (Kwong, 2020, p.247)
+
+Here we define the *Fibonacci* function as a *generic* function.
+"
+
+# ╔═╡ 0850aafc-281f-4aba-ad70-9abd5a0890ef
+fib0(n) =
+		n < 3 ? 
+			1 : 
+			fib0(n-1) + fib0(n-2)
+
+# ╔═╡ ac1fbc01-f332-430a-8e58-14d1cbdb5ec6
+fib0(6)
+
+# ╔═╡ d14b5ab5-5909-4aef-a50d-51971cb78755
+@btime fib0(40)               # ~ (398 - 1026) msec; Kwong's measurement is 427 msec
+
+# ╔═╡ 1f6daa82-a83d-44a0-8a1f-bca3b488655d
+md"
+---
+###### 3.2 With *Trace* Information
+(cf. Kwong, 2020, p.247)
+
+Kwong presents a *call graph* of $fib(6)$ to demonstrate that $fib(4), fib(3), fib(2)$, and $fib(1)$ are repeated $2, 3, 5$, and $2$ times so that *memoization* could save computations by storing and fetching from a memory like a *dictionary* (Kwong, 2020, p.247).
+
+We generate a similar call graph by *tracing* recursive function calls of function $fib1(n)$.
 "
 
 # ╔═╡ e89195bb-260b-4df7-b46f-d7beb003adac
-fib1(n) = n ≤ 2 ? 
-	1 : 
-	fib1(n-1) + fib1(n-2)
+function fib1(n::Int; depth::Int=0, trace=false)
+	indent = repeat("   ", depth)
+	if 	n ≤ 2 
+		1 
+	else
+		if (trace !== false) 
+			println(indent, "|---------------") 
+			println(indent, "|-> n = $n")
+		end # if
+		fibn = 
+			fib1(n-1, depth=depth+1, trace=trace) + 
+				fib1(n-2, depth=depth+1, trace=trace)
+		if (trace !== false) 
+			println(indent, "|<- fib($n) = $fibn") 
+			println(indent, "|===============")
+		end # if
+		fibn
+	end # if
+end # function fib1
+
+# ╔═╡ 835ba716-1883-4af2-9059-e47946f50d22
+fib1(6)
+
+# ╔═╡ 37ce9c8f-943f-4293-aea8-58ae6df19d01
+fib1(6, trace=true)
+
+# ╔═╡ d2aad6d0-7fb1-48a3-879c-e1a52842ffad
+fib1(10)
+
+# ╔═╡ d5819122-4441-4a09-8e7b-0e107498bd67
+fib1(10, trace=true)
 
 # ╔═╡ ab4ffd37-300d-4516-ab9d-b78e9bfa1055
 fib1.(1:10)
 
-# ╔═╡ fb30bbe7-64b6-4503-ba20-be38a4e38fb9
-fib1(6)
+# ╔═╡ e0dcfa56-ff4f-4be2-a208-c5004d0a75aa
+@btime fib1(40)               # ~ (37 - 68) sec, rather slow by boilerplate code
 
 # ╔═╡ 033ee2ed-4087-4158-9c81-dbce60c9b29e
 md"
 ---
 ###### 3.2 Improving the Performance of the Fibonacci Function
-(Kwong, 2020, p.248f)
+(cf. Kwong, 2020, p.248f)
+
+The bad performance of the naive Fibonacci function is documented by $fib2(n)$. We take as an example the computation of $fib(6)$. There a $15$ function calls as can be seen in Kwong's call graph (Kwong, 2020, p.247), the trace of $fib1(6)$ and the function value of $fib2(6)$.
 "
 
 # ╔═╡ 5940ffb0-d3ac-447a-96f8-a9230c95623c
@@ -99,63 +159,65 @@ function fib2(n)
 	if 	n ≤ 2
 		(n=n, result=1, counter=1)
 	else
-		n2, result1, counter1 = fib2(n - 2)
-		n1, result2, counter2 = fib2(n - 1)
-		(n=n, result=result1 + result2, counter=1 + counter1 + counter2)
+		(n2, result1, counter1) = fib2(n - 2)
+		(n1, result2, counter2) = fib2(n - 1)
+		(n = n, result  = result1 + result2, counter = 1 + counter1 + counter2)
 	end # if
 end # function fib2
 
-# ╔═╡ c4dba214-679d-49c8-a5a0-34960b734e93
-fib2(1)
+# ╔═╡ 30711b63-3995-443d-ac81-09ab4c7b9062
+fib2.(1:9)
 
-# ╔═╡ 39e16dcd-acf8-4369-aece-4e7d53549547
-fib2(2)
-
-# ╔═╡ e65b1c15-c491-4441-9a19-c4e36a29ca73
-fib2(3)
-
-# ╔═╡ dd2ae23f-cfde-45a6-bdb3-8e474e87342e
+# ╔═╡ 1f62f89e-809d-4f87-ae3a-83ddcecc5541
 fib2(6)
 
 # ╔═╡ 83a59aee-a440-4864-bcc7-d375b01b7dd3
 fib2(10)
 
-# ╔═╡ 024fd145-71ea-4a37-a146-71bd83ac788c
-fib2(20)
-
-# ╔═╡ 30711b63-3995-443d-ac81-09ab4c7b9062
-fib2.(1:10)
-
-# ╔═╡ d14b5ab5-5909-4aef-a50d-51971cb78755
-@btime fib1(40) # Kwong's measurement is 427 msec
+# ╔═╡ fc5be547-41cf-45f9-9763-809fe0fd3d23
+@btime fib2(40)   
+#         ~ (800 - 1800) msec; Kwong's measurement is 427 msec (Kwong, 2020, p.249)
 
 # ╔═╡ 306f9699-365f-4989-9a3b-04794109f80b
 md"
 ---
 ###### *First* attempt to use *Memoization*
 (Kwong, 2020, p.249)
+
+This first attempt of memoization is implemented in $fib3(n)$. $fib3$ calls a parametric function $foo$. 
+
+We tried the two argument bindings $fib0(n)$ and $\_fib$ for parameter $foo$. We measured a substantial speed gain by *memoization* implemented in $fib3(n)$ but no difference between arguments $fib0(n)$ and $\_fib(n)$.
+
+The memoization effect is substantial although the number of entries in the dictionary is rather restricted. This is due to the effect that the dictionary entry is made only when the function is called the first time. This happens in the body of $fib3$. All other recursive calls located in the body of the called $fib0$ or $_fib$ are *not* affected by the memoization procedure. 
+
+This way $fibCache$ only has 4 entries. These are for $fib3(5), fib3(6), fib3(10)$, and $fib3(40)$.
 "
 
 # ╔═╡ ebc321a9-1cfc-4fed-a6ef-908d007f55b5
-const fibCache = Dict()
+begin 
+	const fibCache = Dict()
+	(length(fibCache), fibCache)            
+end # begin
 
-# ╔═╡ 9c9ed8d1-8c21-4436-a110-3f117bc14a5b
-function _fib(n) 
+# ╔═╡ 1b0ecf34-868c-4c94-9dfa-d4a2f95e6a90
+_fib(n) = 
 	n ≤ 2 ? 
-		1 :
-		_fib(n-1) + _fib(n-2)
-end # function _fib
+		1 : 
+		fib0(n-1) + fib0(n-2)
 
 # ╔═╡ 2cc5c1b2-1ffc-41c5-a15f-fbb6e65634f6
-function fib3(n)
+function fib3(n::Int; foo::Function=fib0)
 	if 	haskey(fibCache, n)
-		fibCache[n]
+		(length(fibCache), fibCache[n])
 	else
-		value = _fib(n)
-		fibCache[n] = value
-		value
+		values = foo(n)             
+		fibCache[n] = values 
+		(length(fibCache), values)
 	end # if
 end # function
+
+# ╔═╡ c1b6e7e7-e304-476a-96ad-f044342fb827
+length(fibCache), fibCache                            # content of cache
 
 # ╔═╡ d206e8e9-62f5-4456-a4ac-e800f1bf024f
 @btime fib3(5)
@@ -167,68 +229,303 @@ end # function
 @btime fib3(10)
 
 # ╔═╡ 801897c0-f358-451b-920d-2fb1522f05ed
-@btime fib3(40)                                     # Kwong's measurement is 32 nsec
+@btime fib3(40, foo=fib0)         
+#           ~ (44 - 64) nsec; Kwong's measurement is ~ 32 nsec (Kwong, 2020, p.249)
+
+# ╔═╡ 1fd6389d-ac50-4e88-8352-b2d0fd2b4900
+@btime fib3(40, foo=_fib) 
+#           ~ (44 - 68) nsec; Kwong's measurement is ~ 32 nsec (Kwong, 2020, p.249)
+
+# ╔═╡ dd1af5f1-db54-48a2-88eb-836030bbd3ca
+length(fibCache), fibCache
 
 # ╔═╡ 8e4c153f-cee6-4e6a-891a-ad40e47a4868
 md"
 ---
-###### 3.3 Automating the Construction of a *Memoization Cache*
-(Kwong, 2020, p250f)
+###### 3.3 *Automating* the Construction of a *Memoization Cache* with *Multiple* and *Keyword* Arguments
+(Kwong, 2020, p.250f)
+
+The automation of the memoization effect can be obtained by the *higher-order* function $memoize(foo::Function)$. Function $memoize$ takes a functional argument and generates a new *memoized* function. For demonstration purposes we take $fib4(n)$. This is a derivate of $fib1(n)$. $fib1(n)$ is a *generic* function but $fib4$ has as a binding an *anonymous* function. Both Julia functions map *natural* numbers to the *Fibonacci* function values but $fib4$ is *slower* than $fib1(n)$.
 "
 
-# ╔═╡ e87a9443-93da-46d3-bf15-a84652dc3233
-fib4 = n -> 
-			begin                                   # anonymous function
-				n ≤ 2 ?
-					1 :
-					fib4(n-1) + fib4(n-2)
-			end # begin
+# ╔═╡ 44d98c72-2240-4bc0-8c70-40277d4821cd
+fib4 =  
+	(n::Int; depth::Int=0, trace=false) ->  #    anonymous function             
+		if 	n ≤ 2 
+			1 
+		else
+			indent = repeat("   ", depth)
+			if (trace !== false) 
+				println(indent, "|---------------")
+				println(indent, "|-> n = $n")
+			end # if
+			fibn = 
+				fib4(n-1, depth=depth+1, trace=trace) + 
+					fib4(n-2, depth=depth+1, trace=trace)
+			if (trace !== false) 
+				println(indent, "|<- fib($n) = $fibn") 
+				println(indent, "|===============")
+			end # if
+			fibn
+		end # if
 
-# ╔═╡ 795a5f7d-a822-4772-9b03-2db8f0f0c001
+# ╔═╡ 2adb81cc-4480-4df6-8ca2-b2dbcbb8c23a
 fib4(6)
 
+# ╔═╡ ee4823f0-d250-4989-95b0-6e98eece4e49
+fib4(6, trace=true)
+
+# ╔═╡ 48865a0e-1cea-462e-b39d-e15cb3e7b29c
+fib4(10)
+
+# ╔═╡ b17ee736-b45c-462e-a290-ea675517066c
+fib4(10, trace=true)
+
+# ╔═╡ a76bfca3-7d26-4792-af86-494b43bf0bff
+@btime fib4(40)               # ~ (37 - 68) sec, rather slow by boilerplate code
+
 # ╔═╡ bab903df-0686-4134-b7fb-299622393f6c
-function memoize(foo)
+function memoize(foo::Function)
 	cache = Dict()
 	#-----------------------------------------------------------------------------
-	x -> begin                                  # closure
-			if 	haskey(cache, x)                # cache is nonlocal in closure   
-				cache[x]
-			else
-				value = foo(x)                 # fibf is nonlocal in closure 
-				cache[x] = value
-				value
-			end # if
-		end # begin
+	x ->                                    # closure                           
+		if 	haskey(cache, x)                # cache is nonlocal in closure   
+			length(cache), cache[x]  
+		else
+			value = foo(x)                  # foo is nonlocal in closure 
+			cache[x] = value
+			length(cache), value   
+		end # if
 	#-----------------------------------------------------------------------------
 end # function memoize
 
-# ╔═╡ c1c3ce31-7b97-4708-8d13-63debcf9a1f6
+# ╔═╡ 3a113fb9-1ce0-46d8-9ff8-ca780cfd2cbd
 fib5 = memoize(fib4)
 
+# ╔═╡ 01c903f6-0f90-42cd-9d7a-1d9263ebb565
+fib5.(1:9)                             # ==> (length(cache), fib(n))
+
+# ╔═╡ 47b62a5b-957e-44af-9ac7-a45368eea655
+fib5(10)
+
+# ╔═╡ 5bcf2738-9be7-4afc-bbcb-3d34b1c65a03
+@btime fib5(40)                  
+#             ~ (72 - 79) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
+
+# ╔═╡ c1c3ce31-7b97-4708-8d13-63debcf9a1f6
+fib6 = memoize(fib2)
+
 # ╔═╡ 9304229d-c92a-4fca-8f38-f90b85bcbe3b
-@btime fib5(6)
+fib6.(1:9)
 
-# ╔═╡ 61ff00e5-40a2-46ea-bf37-b2a32790be65
-@btime fib5(5)
-
-# ╔═╡ ac88685e-abfb-4703-b770-5625cde46fd7
-@btime fib5(10)
+# ╔═╡ f22e4e21-bd81-4df8-9794-8342b9b247f8
+fib6(10)
 
 # ╔═╡ 5e2993fe-c272-4961-b3ab-0bc20bd7ff53
-@btime fib5(40)                             # Kwong's measurement is 47 nsec
+@btime fib6(40)                  
+#             ~ (72 - 85) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
 
-# ╔═╡ 2c63bf5b-1b63-4b9f-a5d2-8ef471ac7558
-fib6 = memoize(_fib)
+# ╔═╡ 14f4e767-4bd0-4c46-8cec-a8b60cb3eb43
+md"
+---
+###### 3.4 Memoizing Recursive Functions
+(cf. Kwong, 2020, p.252)
 
-# ╔═╡ 1c809024-427b-47cb-b7ac-d8cf3b487986
-@btime fib6(40)                             # Kwong's measurement is 47 nsec
+Memoization is done *top-down* for *each* recursive function call in an *anonymous* function by memoizing all recursive function calls in the *body* of a recursive function: $memoize(fib7)$ vs. $memoize(fib0)$.
+"
+
+# ╔═╡ 54c97527-e3f9-40dc-9811-c55208672afc
+fib7 = 
+	n ->
+		if 	n < 3 
+			1  
+		else
+			memoize(fib7)(n-1)[2] + memoize(fib7)(n-2)[2] 
+		end # if
+
+# ╔═╡ deaeb9f2-1c85-4024-bebe-f22f636a318a
+fib8 = memoize(fib7)   # memorizing the total memorized recursive function
+
+# ╔═╡ 1112225e-b76f-4e50-acd7-409555325148
+fib8(6)
+
+# ╔═╡ 82a89ea1-9791-474f-82a1-f4f48c6a174f
+fib8(10)
+
+# ╔═╡ bc17ca91-becf-499b-8af7-0960955710f5
+@btime fib8(40)                               # ~ (72 - 75) nsec
+
+# ╔═╡ 64e3978a-7cec-41ea-8a98-d3fa7ec2d7c2
+fib9 = memoize(fib0)   # memorizing the not total memorized recursive function
+
+# ╔═╡ ed32a201-f49c-4c22-b124-21f1f8c87e98
+fib9.(1:10)
+
+# ╔═╡ 43bfd627-b5de-48ff-bbd5-6f6430d7118a
+@btime fib9(10)                          # ~ (72 - 74) nsec
+
+# ╔═╡ 19822291-fe58-4e4e-a68c-e578b07c6943
+@btime fib9(20)                          # ~ 78 nsec
+
+# ╔═╡ 005c5aee-7c02-4f8f-8d5d-9d4dc4cdf7de
+@btime fib9(40)                  # ~ (72 - 73) nsec; Kwong's measurement is 47 nsec
+
+# ╔═╡ 1e53ebac-3f3d-4965-bc9e-ee7e7dd93d80
+@btime fib9(40)                  # ~ (72 - 73) nsec; Kwong's measurement is 47 nsec
+
+# ╔═╡ 2098a943-05a3-4ba6-b21a-363342ee365e
+md"
+---
+###### 3.5 Supporting Functions with *Multiple* Arguments
+(Kwong, 2020, p.253f)
+"
+
+# ╔═╡ 89327b48-730e-4fab-aa38-14eac97c7ff9
+function memoizeMultipleArgs(foo)
+	cache = Dict()
+	#-----------------------------------------------------------------------------
+	(args...; kwargs...) -> begin                                  # closure
+		x = (args, kwargs)
+		if 	haskey(cache, x)                # cache is nonlocal in closure   
+			cache[x]  
+		else
+			value = foo(args...; kwargs...) # foo is nonlocal in closure 
+			cache[x] = value
+			value   
+		end # if
+	end # begin
+	#-----------------------------------------------------------------------------
+end # function memoizeMultipleArgs
+
+# ╔═╡ f2fcf32a-8729-4777-b842-e35ddd9f24eb
+fib10 = memoizeMultipleArgs(fib4)
+
+# ╔═╡ b7aff350-5c93-4213-94b5-3c2673922583
+fib10.(1:9)
+
+# ╔═╡ b664cd9f-79d6-448e-b3f3-41f83c7b25c7
+fib10(10, trace=true)
+
+# ╔═╡ 094f836e-2cbf-415f-9ab5-cb633763b235
+@btime fib10(40)                        # ~ 30 nsec; Kwong's measurement is 47 nsec
+
+# ╔═╡ 760afd47-d1f7-4ca7-91bb-a07074ea1dce
+slowOp = (a, b = 2; c = 3, d) -> begin
+	sleep(2)
+	a + b + c + d
+end # begin
+
+# ╔═╡ 1859fd1b-6bd8-4043-8ade-da8f58a8523f
+@btime slowOp(10, d=20)                # ~ 2 sec
+
+# ╔═╡ 8e30f35c-e0a0-4cb0-bbbe-ce078d61033e
+fastOp = memoizeMultipleArgs(slowOp)
+
+# ╔═╡ a67ef6d7-d8c3-4fac-af48-e553b25a623a
+@btime fastOp(10, d=20)                # ~ 78 nsec
+
+# ╔═╡ 14673fa7-294c-4c86-96e8-e6ae96680efe
+@btime fastOp(2, d=5)                  # ~ 78 nsec; Kwong's is 2.4 sec
+
+# ╔═╡ 7378973e-3d2b-4b32-a9f9-195593c81d4e
+@btime fastOp(2, d=5)                  # ~ 73 nsec; Kwong's is 0.000023 sec
+
+# ╔═╡ 33602290-b08f-4f9b-90a6-0746b03e6cf9
+@btime fastOp(1, c=4, d=5)             # ~ 107 nsec; Kwong's is 2.1 sec
+
+# ╔═╡ 8b037765-79d4-41df-933c-4963db9ec503
+@btime fastOp(1, c=4, d=5)             # ~ 110 nsec; Kwong's is 0.000024 sec
+
+# ╔═╡ 897fdd0d-43ff-4b6d-b786-81416104dede
+md"
+---
+###### 3.6 Mutable Data Types in the Arguments
+(Kwong, 2020, p.254f)
+"
+
+# ╔═╡ 20546bbc-c2a2-4034-b7e4-45367101f6b4
+slowSumAbs = (x::AbstractVector{T} where {T <: Real}) -> begin
+	sleep(2)
+	sum(abs(v) for v in x)
+end # begin
+
+# ╔═╡ e2e50b88-f31e-45b3-b146-744e68dd8716
+x = [1, -2, 3, -4, 5]
+
+# ╔═╡ 30f4abd7-d187-4277-a7e5-19aaae957caa
+sumAbs = memoizeMultipleArgs(slowSumAbs)
+
+# ╔═╡ 0f7abba3-336a-4742-95f7-cb8782651ed5
+@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 2.2 sec
+
+# ╔═╡ 0d1475bb-b700-44ec-a534-c0f431678d53
+@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+
+# ╔═╡ d5a1ecd7-a583-462b-b678-1fda936a2fd9
+push!(x, -6)
+
+# ╔═╡ e8cbe3d5-7f07-4e62-835c-a847de34c772
+@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+
+# ╔═╡ b06b3cd5-998a-449d-b8f9-b6174b6dd897
+push!(x, 7)
+
+# ╔═╡ 3622dd53-579e-4a68-b868-bff8443096f6
+@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+
+# ╔═╡ 735138f0-424a-4c74-b274-4499e31c85a1
+rand(UInt64)
+
+# ╔═╡ 221c48b7-aca6-4412-bec3-4082ae3855fd
+function memoizeMultipleArgsHash(foo)
+	#-----------------------------------------------------------------------------
+	function hashAllArgs(args, kwargs)
+		h = rand(UInt64)
+		h += hash(args, h)
+		h += hash(kwargs, h)
+		h
+	end # function
+	#-----------------------------------------------------------------------------
+	cache = Dict()
+	#-----------------------------------------------------------------------------
+	(args...; kwargs...) -> begin                                  # closure
+		key = hashAllArgs(args, kwargs)
+		if 	haskey(cache, x)                # cache is nonlocal in closure   
+			cache[x]  
+		else
+			value = foo(args...; kwargs...) # foo is nonlocal in closure 
+			cache[x] = value
+			value   
+		end # if
+	end # begin
+	#-----------------------------------------------------------------------------
+end # function memoizeMultipleArgsHash
+
+# ╔═╡ cf775dcc-b3a3-4ae4-8608-348df7973908
+sumAbsHash = memoizeMultipleArgsHash(sumAbs)
+
+# ╔═╡ 440a29ef-f4ad-4d35-a05e-c800e5b44f21
+x5 = [1, -2, 3, -4, 5]
+
+# ╔═╡ 2424631b-a4e3-4a1e-b736-01284b8eca66
+@btime sumAbsHash(x5)
+
+# ╔═╡ 8adf9648-7a3b-4d85-a8d5-70623aacfccc
+@btime sumAbsHash(x5)
+
+# ╔═╡ 471ff02c-adf7-42a5-96f5-5bab0c771df7
+for i in 6:10
+	push!(x5, i * (iseven(i) ? -1 : 1))
+	ts = @elapsed val = sumAbsHash(x5)
+	println(i, ": ", x5, " -> ", val, " ( ", round(ts, digits=1), "s)")
+	ts = @elapsed val = sumAbsHash(x5)
+	println(i, ": ", x5, " -> ", val, " ( ", round(ts, digits=1), "s)")
+end # for
 
 # ╔═╡ 2f3ad781-b1ec-4980-8a1d-41578d9ab5c9
 md"
 ---
 ##### 4. Summary
-We have to delete the $println(...)$ statements from Pluto cells. They had harmfull influence on $memoize$.
 "
 
 # ╔═╡ b5e6c048-a54e-454c-859e-22f5d5539cf0
@@ -255,11 +552,12 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
-SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
+TraceFuns = "626f57eb-f6ca-464c-8f04-384fee2a352e"
 
 [compat]
 BenchmarkTools = "~1.6.0"
 Pluto = "~0.20.16"
+TraceFuns = "~0.2.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -268,7 +566,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "ae156f6c2ec0a732e51d6cd1e8f1f2156b6bddb1"
+project_hash = "e68e406fb9eda49b0b9e8dd71d753ef0cf161b3d"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -292,6 +590,11 @@ version = "1.6.0"
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
+
+[[deps.Cassette]]
+git-tree-sha1 = "f8764df8d9d2aec2812f009a1ac39e46c33354b8"
+uuid = "7057c7e9-c182-5462-911a-8362d720325c"
+version = "0.3.14"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -625,11 +928,6 @@ version = "1.3.0"
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
 
-[[deps.SharedArrays]]
-deps = ["Distributed", "Mmap", "Random", "Serialization"]
-uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
-version = "1.11.0"
-
 [[deps.SimpleBufferStream]]
 git-tree-sha1 = "f305871d2f381d21527c770d4788c06c097c9bc1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
@@ -681,6 +979,12 @@ version = "1.10.0"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
+
+[[deps.TraceFuns]]
+deps = ["Cassette"]
+git-tree-sha1 = "d8e026e2d98f790d64ef05854603d57b0d4cb9df"
+uuid = "626f57eb-f6ca-464c-8f04-384fee2a352e"
+version = "0.2.0"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"
@@ -734,38 +1038,93 @@ version = "17.4.0+2"
 # ╟─b1a3a18b-0547-4d72-987d-97178296df04
 # ╠═8f900506-563a-4853-957a-54445b939f56
 # ╟─8d202a61-6593-4cbe-bc89-12746a462588
+# ╠═0850aafc-281f-4aba-ad70-9abd5a0890ef
+# ╠═ac1fbc01-f332-430a-8e58-14d1cbdb5ec6
+# ╠═d14b5ab5-5909-4aef-a50d-51971cb78755
+# ╟─1f6daa82-a83d-44a0-8a1f-bca3b488655d
 # ╠═e89195bb-260b-4df7-b46f-d7beb003adac
+# ╠═835ba716-1883-4af2-9059-e47946f50d22
+# ╠═37ce9c8f-943f-4293-aea8-58ae6df19d01
+# ╠═d2aad6d0-7fb1-48a3-879c-e1a52842ffad
+# ╠═d5819122-4441-4a09-8e7b-0e107498bd67
 # ╠═ab4ffd37-300d-4516-ab9d-b78e9bfa1055
-# ╠═fb30bbe7-64b6-4503-ba20-be38a4e38fb9
+# ╠═e0dcfa56-ff4f-4be2-a208-c5004d0a75aa
 # ╟─033ee2ed-4087-4158-9c81-dbce60c9b29e
 # ╠═5940ffb0-d3ac-447a-96f8-a9230c95623c
-# ╠═c4dba214-679d-49c8-a5a0-34960b734e93
-# ╠═39e16dcd-acf8-4369-aece-4e7d53549547
-# ╠═e65b1c15-c491-4441-9a19-c4e36a29ca73
-# ╠═dd2ae23f-cfde-45a6-bdb3-8e474e87342e
-# ╠═83a59aee-a440-4864-bcc7-d375b01b7dd3
-# ╠═024fd145-71ea-4a37-a146-71bd83ac788c
 # ╠═30711b63-3995-443d-ac81-09ab4c7b9062
-# ╠═d14b5ab5-5909-4aef-a50d-51971cb78755
+# ╠═1f62f89e-809d-4f87-ae3a-83ddcecc5541
+# ╠═83a59aee-a440-4864-bcc7-d375b01b7dd3
+# ╠═fc5be547-41cf-45f9-9763-809fe0fd3d23
 # ╟─306f9699-365f-4989-9a3b-04794109f80b
 # ╠═ebc321a9-1cfc-4fed-a6ef-908d007f55b5
-# ╠═9c9ed8d1-8c21-4436-a110-3f117bc14a5b
+# ╠═1b0ecf34-868c-4c94-9dfa-d4a2f95e6a90
 # ╠═2cc5c1b2-1ffc-41c5-a15f-fbb6e65634f6
+# ╠═c1b6e7e7-e304-476a-96ad-f044342fb827
 # ╠═d206e8e9-62f5-4456-a4ac-e800f1bf024f
 # ╠═1ed5dc2c-deee-43cf-be52-9ab8f6676cc2
 # ╠═535a1434-4850-486b-bf0c-6efb88f569c3
 # ╠═801897c0-f358-451b-920d-2fb1522f05ed
+# ╠═1fd6389d-ac50-4e88-8352-b2d0fd2b4900
+# ╠═dd1af5f1-db54-48a2-88eb-836030bbd3ca
 # ╟─8e4c153f-cee6-4e6a-891a-ad40e47a4868
-# ╠═e87a9443-93da-46d3-bf15-a84652dc3233
-# ╠═795a5f7d-a822-4772-9b03-2db8f0f0c001
+# ╠═44d98c72-2240-4bc0-8c70-40277d4821cd
+# ╠═2adb81cc-4480-4df6-8ca2-b2dbcbb8c23a
+# ╠═ee4823f0-d250-4989-95b0-6e98eece4e49
+# ╠═48865a0e-1cea-462e-b39d-e15cb3e7b29c
+# ╠═b17ee736-b45c-462e-a290-ea675517066c
+# ╠═a76bfca3-7d26-4792-af86-494b43bf0bff
 # ╠═bab903df-0686-4134-b7fb-299622393f6c
+# ╠═3a113fb9-1ce0-46d8-9ff8-ca780cfd2cbd
+# ╠═01c903f6-0f90-42cd-9d7a-1d9263ebb565
+# ╠═47b62a5b-957e-44af-9ac7-a45368eea655
+# ╠═5bcf2738-9be7-4afc-bbcb-3d34b1c65a03
 # ╠═c1c3ce31-7b97-4708-8d13-63debcf9a1f6
 # ╠═9304229d-c92a-4fca-8f38-f90b85bcbe3b
-# ╠═61ff00e5-40a2-46ea-bf37-b2a32790be65
-# ╠═ac88685e-abfb-4703-b770-5625cde46fd7
+# ╠═f22e4e21-bd81-4df8-9794-8342b9b247f8
 # ╠═5e2993fe-c272-4961-b3ab-0bc20bd7ff53
-# ╠═2c63bf5b-1b63-4b9f-a5d2-8ef471ac7558
-# ╠═1c809024-427b-47cb-b7ac-d8cf3b487986
+# ╟─14f4e767-4bd0-4c46-8cec-a8b60cb3eb43
+# ╠═54c97527-e3f9-40dc-9811-c55208672afc
+# ╠═deaeb9f2-1c85-4024-bebe-f22f636a318a
+# ╠═1112225e-b76f-4e50-acd7-409555325148
+# ╠═82a89ea1-9791-474f-82a1-f4f48c6a174f
+# ╠═bc17ca91-becf-499b-8af7-0960955710f5
+# ╠═64e3978a-7cec-41ea-8a98-d3fa7ec2d7c2
+# ╠═ed32a201-f49c-4c22-b124-21f1f8c87e98
+# ╠═43bfd627-b5de-48ff-bbd5-6f6430d7118a
+# ╠═19822291-fe58-4e4e-a68c-e578b07c6943
+# ╠═005c5aee-7c02-4f8f-8d5d-9d4dc4cdf7de
+# ╠═1e53ebac-3f3d-4965-bc9e-ee7e7dd93d80
+# ╟─2098a943-05a3-4ba6-b21a-363342ee365e
+# ╠═89327b48-730e-4fab-aa38-14eac97c7ff9
+# ╠═f2fcf32a-8729-4777-b842-e35ddd9f24eb
+# ╠═b7aff350-5c93-4213-94b5-3c2673922583
+# ╠═b664cd9f-79d6-448e-b3f3-41f83c7b25c7
+# ╠═094f836e-2cbf-415f-9ab5-cb633763b235
+# ╠═760afd47-d1f7-4ca7-91bb-a07074ea1dce
+# ╠═1859fd1b-6bd8-4043-8ade-da8f58a8523f
+# ╠═8e30f35c-e0a0-4cb0-bbbe-ce078d61033e
+# ╠═a67ef6d7-d8c3-4fac-af48-e553b25a623a
+# ╠═14673fa7-294c-4c86-96e8-e6ae96680efe
+# ╠═7378973e-3d2b-4b32-a9f9-195593c81d4e
+# ╠═33602290-b08f-4f9b-90a6-0746b03e6cf9
+# ╠═8b037765-79d4-41df-933c-4963db9ec503
+# ╟─897fdd0d-43ff-4b6d-b786-81416104dede
+# ╠═20546bbc-c2a2-4034-b7e4-45367101f6b4
+# ╠═e2e50b88-f31e-45b3-b146-744e68dd8716
+# ╠═30f4abd7-d187-4277-a7e5-19aaae957caa
+# ╠═0f7abba3-336a-4742-95f7-cb8782651ed5
+# ╠═0d1475bb-b700-44ec-a534-c0f431678d53
+# ╠═d5a1ecd7-a583-462b-b678-1fda936a2fd9
+# ╠═e8cbe3d5-7f07-4e62-835c-a847de34c772
+# ╠═b06b3cd5-998a-449d-b8f9-b6174b6dd897
+# ╠═3622dd53-579e-4a68-b868-bff8443096f6
+# ╠═735138f0-424a-4c74-b274-4499e31c85a1
+# ╠═221c48b7-aca6-4412-bec3-4082ae3855fd
+# ╠═cf775dcc-b3a3-4ae4-8608-348df7973908
+# ╠═440a29ef-f4ad-4d35-a05e-c800e5b44f21
+# ╠═2424631b-a4e3-4a1e-b736-01284b8eca66
+# ╠═8adf9648-7a3b-4d85-a8d5-70623aacfccc
+# ╠═471ff02c-adf7-42a5-96f5-5bab0c771df7
 # ╟─2f3ad781-b1ec-4980-8a1d-41578d9ab5c9
 # ╟─b5e6c048-a54e-454c-859e-22f5d5539cf0
 # ╟─09c3a92f-8775-4f09-94df-60f70507dbcd
