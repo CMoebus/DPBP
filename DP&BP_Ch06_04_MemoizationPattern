@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.16
+# v0.20.18
 
 using Markdown
 using InteractiveUtils
@@ -22,7 +22,6 @@ begin
 	# using SharedArrays
 	# @everywhere using Random
 	# @everywhere using SharedArrays
-	using TraceFuns
 	#----------------------------------------------------------------------
 	println("pkgversion(Pluto)          = ", pkgversion(Pluto))
 	# println("pkgversion(Plots)         = ", pkgversion(Plots))
@@ -37,7 +36,6 @@ begin
 	# println("pkgversion(Distributed)   = ", pkgversion(Distributed))
 	# println("pkgversion(Random)        = ", pkgversion(Random))
 	# println("pkgversion(SharedArrays)  = ", pkgversion(SharedArrays))
-	println("pkgversion(TraceFuns)      = ", pkgversion(TraceFuns))
 	#----------------------------------------------------------------------
 end # begin
 
@@ -46,7 +44,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_04\_Memoization Pattern
 ##### file: DP&BP\_Ch06\_04\_MemoizationPattern
-##### code: Julia/Pluto (1.11.6/0.20.16) by PCM *** 2025/09/16 ***
+##### code: Julia/Pluto (1.11.6/0.20.16) by PCM *** 2025/09/20 ***
 
 ===================================================================================
 "
@@ -58,7 +56,7 @@ md"
 ##### 0. Introduction
 By *memoization* we can gain computation speed when *intermediate* results can be obtained by being fetched from a storage instead of being computed a second time. 
 
-In the memoization used here *intermediate* function values are stored in a Julian *dictionary*. As a paradigmatic example we demonstrate this effect with the tree recursive *fibonacci* function. When necessary we deviate from Kwong's code. 
+In the memoization used here *intermediate* function values are stored in a Julian *dictionary*. As a paradigmatic example we demonstrate this effect with the tree recursive *Fibonacci* function. When necessary we deviate from Kwong's code. 
 "
 
 # ╔═╡ f715ff25-f95b-48ba-818f-eac225205dc0
@@ -143,7 +141,7 @@ fib1(10, trace=true)
 fib1.(1:10)
 
 # ╔═╡ e0dcfa56-ff4f-4be2-a208-c5004d0a75aa
-@btime fib1(40)               # ~ (37 - 68) sec, rather slow by boilerplate code
+@btime fib1(40)          # ~ (37 - 68) sec, rather slow because of boilerplate code
 
 # ╔═╡ 033ee2ed-4087-4158-9c81-dbce60c9b29e
 md"
@@ -184,7 +182,7 @@ md"
 ###### *First* attempt to use *Memoization*
 (Kwong, 2020, p.249)
 
-This first attempt of memoization is implemented in $fib3(n)$. $fib3$ calls a parametric function $foo$. 
+The question is whether *memoization* can help with a speed-up. This first attempt of memoization is implemented in $fib3(n)$. $fib3$ calls a parametric function $foo$. 
 
 We tried the two argument bindings $fib0(n)$ and $\_fib$ for parameter $foo$. We measured a substantial speed gain by *memoization* implemented in $fib3(n)$ but no difference between arguments $fib0(n)$ and $\_fib(n)$.
 
@@ -230,7 +228,7 @@ length(fibCache), fibCache                            # content of cache
 
 # ╔═╡ 801897c0-f358-451b-920d-2fb1522f05ed
 @btime fib3(40, foo=fib0)         
-#           ~ (44 - 64) nsec; Kwong's measurement is ~ 32 nsec (Kwong, 2020, p.249)
+#           ~ (44 - 68) nsec; Kwong's measurement is ~ 32 nsec (Kwong, 2020, p.249)
 
 # ╔═╡ 1fd6389d-ac50-4e88-8352-b2d0fd2b4900
 @btime fib3(40, foo=_fib) 
@@ -245,7 +243,7 @@ md"
 ###### 3.3 *Automating* the Construction of a *Memoization Cache* with *Multiple* and *Keyword* Arguments
 (Kwong, 2020, p.250f)
 
-The automation of the memoization effect can be obtained by the *higher-order* function $memoize(foo::Function)$. Function $memoize$ takes a functional argument and generates a new *memoized* function. For demonstration purposes we take $fib4(n)$. This is a derivate of $fib1(n)$. $fib1(n)$ is a *generic* function but $fib4$ has as a binding an *anonymous* function. Both Julia functions map *natural* numbers to the *Fibonacci* function values but $fib4$ is *slower* than $fib1(n)$.
+The automation of the memoization effect can be obtained by the *higher-order* function $memoize(foo::Function)$. Function $memoize$ takes a functional argument and generates a new *memoized* function. For demonstration purposes we apply $memoize$ to $fib1(n), fib2(n)$ and $fib4$. The latter is a derivate of $fib1(n)$. $fib1(n)$ is a *generic* function but $fib4$ is not. It is bound to an *anonymous* function. Despite their different code implementations all Julia functions $fib1(n), fib2(n)$ and $fib4$ map *natural* numbers to the *Fibonacci* function values and their $memoize$-speed-gain is similar.
 "
 
 # ╔═╡ 44d98c72-2240-4bc0-8c70-40277d4821cd
@@ -282,7 +280,7 @@ fib4(10)
 fib4(10, trace=true)
 
 # ╔═╡ a76bfca3-7d26-4792-af86-494b43bf0bff
-@btime fib4(40)               # ~ (37 - 68) sec, rather slow by boilerplate code
+@btime fib4(40)          # ~ (24 - 68) sec, rather slow because of boilerplate code
 
 # ╔═╡ bab903df-0686-4134-b7fb-299622393f6c
 function memoize(foo::Function)
@@ -299,30 +297,43 @@ function memoize(foo::Function)
 	#-----------------------------------------------------------------------------
 end # function memoize
 
-# ╔═╡ 3a113fb9-1ce0-46d8-9ff8-ca780cfd2cbd
-fib5 = memoize(fib4)
+# ╔═╡ 2da8d149-d08b-466f-81a6-60c6297f5a3c
+fib5 = memoize(fib1)
 
-# ╔═╡ 01c903f6-0f90-42cd-9d7a-1d9263ebb565
-fib5.(1:9)                             # ==> (length(cache), fib(n))
+# ╔═╡ a5c0e0f9-f508-44a7-9bd6-c0cfb481200f
+fib5.(1:9)
 
-# ╔═╡ 47b62a5b-957e-44af-9ac7-a45368eea655
+# ╔═╡ 45f79e48-edc6-4208-816c-76be9d928e03
 fib5(10)
 
-# ╔═╡ 5bcf2738-9be7-4afc-bbcb-3d34b1c65a03
-@btime fib5(40)                  
-#             ~ (72 - 79) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
+# ╔═╡ c1e307ea-5b81-4a8e-a328-729d7500ad70
+@btime fib5(40)                 
+#             ~ (72 - 87) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
 
-# ╔═╡ c1c3ce31-7b97-4708-8d13-63debcf9a1f6
-fib6 = memoize(fib2)
+# ╔═╡ 3a113fb9-1ce0-46d8-9ff8-ca780cfd2cbd
+fib6 = memoize(fib4)
 
-# ╔═╡ 9304229d-c92a-4fca-8f38-f90b85bcbe3b
-fib6.(1:9)
+# ╔═╡ 01c903f6-0f90-42cd-9d7a-1d9263ebb565
+fib6.(1:9)                             # ==> (length(cache), fib(n))
 
-# ╔═╡ f22e4e21-bd81-4df8-9794-8342b9b247f8
+# ╔═╡ 47b62a5b-957e-44af-9ac7-a45368eea655
 fib6(10)
 
-# ╔═╡ 5e2993fe-c272-4961-b3ab-0bc20bd7ff53
+# ╔═╡ 5bcf2738-9be7-4afc-bbcb-3d34b1c65a03
 @btime fib6(40)                  
+#             ~ (72 - 89) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
+
+# ╔═╡ c1c3ce31-7b97-4708-8d13-63debcf9a1f6
+fib7 = memoize(fib2)
+
+# ╔═╡ 9304229d-c92a-4fca-8f38-f90b85bcbe3b
+fib7.(1:9)
+
+# ╔═╡ f22e4e21-bd81-4df8-9794-8342b9b247f8
+fib7(10)
+
+# ╔═╡ 5e2993fe-c272-4961-b3ab-0bc20bd7ff53
+@btime fib7(40)                  
 #             ~ (72 - 85) nsec; Kwong's measurement is 47 nsec (Kwong, 2020, p.251)
 
 # ╔═╡ 14f4e767-4bd0-4c46-8cec-a8b60cb3eb43
@@ -331,47 +342,47 @@ md"
 ###### 3.4 Memoizing Recursive Functions
 (cf. Kwong, 2020, p.252)
 
-Memoization is done *top-down* for *each* recursive function call in an *anonymous* function by memoizing all recursive function calls in the *body* of a recursive function: $memoize(fib7)$ vs. $memoize(fib0)$.
+Memoization is done *top-down* for *each* recursive function call in an *anonymous* function by memoizing all recursive function calls in the *body* of a recursive function: $memoize(fib8)$ vs. $memoize(fib0)$. For our examples we could *not* measure any *speed-gain* when *memoizing* all recursive calls top down.
 "
 
 # ╔═╡ 54c97527-e3f9-40dc-9811-c55208672afc
-fib7 = 
+fib8 = 
 	n ->
 		if 	n < 3 
 			1  
 		else
-			memoize(fib7)(n-1)[2] + memoize(fib7)(n-2)[2] 
+			memoize(fib8)(n-1)[2] + memoize(fib8)(n-2)[2] 
 		end # if
 
 # ╔═╡ deaeb9f2-1c85-4024-bebe-f22f636a318a
-fib8 = memoize(fib7)   # memorizing the total memorized recursive function
+fib9 = memoize(fib8)   # memorizing the total memorized recursive function
 
 # ╔═╡ 1112225e-b76f-4e50-acd7-409555325148
-fib8(6)
+fib9(6)
 
 # ╔═╡ 82a89ea1-9791-474f-82a1-f4f48c6a174f
-fib8(10)
+fib9(10)
 
 # ╔═╡ bc17ca91-becf-499b-8af7-0960955710f5
-@btime fib8(40)                               # ~ (72 - 75) nsec
+@btime fib9(40)                   # ~ (72 - 85) nsec
 
 # ╔═╡ 64e3978a-7cec-41ea-8a98-d3fa7ec2d7c2
-fib9 = memoize(fib0)   # memorizing the not total memorized recursive function
+fib10 = memoize(fib0)   # memorizing the non total memorized recursive function
 
 # ╔═╡ ed32a201-f49c-4c22-b124-21f1f8c87e98
-fib9.(1:10)
+fib10.(1:9)
 
 # ╔═╡ 43bfd627-b5de-48ff-bbd5-6f6430d7118a
-@btime fib9(10)                          # ~ (72 - 74) nsec
+@btime fib10(10)                  # ~ (72 - 90) nsec
 
 # ╔═╡ 19822291-fe58-4e4e-a68c-e578b07c6943
-@btime fib9(20)                          # ~ 78 nsec
+@btime fib10(20)                  # ~ (72 - 90) nsec
 
 # ╔═╡ 005c5aee-7c02-4f8f-8d5d-9d4dc4cdf7de
-@btime fib9(40)                  # ~ (72 - 73) nsec; Kwong's measurement is 47 nsec
+@btime fib10(40)                  # ~ (72 - 90) nsec; Kwong's measurement is 47 nsec
 
 # ╔═╡ 1e53ebac-3f3d-4965-bc9e-ee7e7dd93d80
-@btime fib9(40)                  # ~ (72 - 73) nsec; Kwong's measurement is 47 nsec
+@btime fib10(40)                  # ~ (72 - 90) nsec; Kwong's measurement is 47 nsec
 
 # ╔═╡ 2098a943-05a3-4ba6-b21a-363342ee365e
 md"
@@ -384,30 +395,34 @@ md"
 function memoizeMultipleArgs(foo)
 	cache = Dict()
 	#-----------------------------------------------------------------------------
-	(args...; kwargs...) -> begin                                  # closure
-		x = (args, kwargs)
-		if 	haskey(cache, x)                # cache is nonlocal in closure   
-			cache[x]  
-		else
-			value = foo(args...; kwargs...) # foo is nonlocal in closure 
-			cache[x] = value
-			value   
-		end # if
-	end # begin
+	(args...; kwargs...) -> 
+		begin                                   # closure
+			key = (args, kwargs)
+			if 	haskey(cache, key)                # cache is nonlocal in closure   
+				cache[key]  
+			else
+				value = foo(args...; kwargs...) # foo is nonlocal in closure 
+				cache[key] = value
+				value   
+			end # if
+		end # begin
 	#-----------------------------------------------------------------------------
 end # function memoizeMultipleArgs
 
 # ╔═╡ f2fcf32a-8729-4777-b842-e35ddd9f24eb
-fib10 = memoizeMultipleArgs(fib4)
+fib11 = memoizeMultipleArgs(fib4)
 
 # ╔═╡ b7aff350-5c93-4213-94b5-3c2673922583
-fib10.(1:9)
+fib11.(1:9)
+
+# ╔═╡ f437d04b-d646-4ed6-8863-4f5e137575c1
+fib11(10)
 
 # ╔═╡ b664cd9f-79d6-448e-b3f3-41f83c7b25c7
-fib10(10, trace=true)
+fib11(10, trace=true)
 
 # ╔═╡ 094f836e-2cbf-415f-9ab5-cb633763b235
-@btime fib10(40)                        # ~ 30 nsec; Kwong's measurement is 47 nsec
+@btime fib11(40)                 # ~ (28 - 32) nsec; Kwong's measurement is 47 nsec
 
 # ╔═╡ 760afd47-d1f7-4ca7-91bb-a07074ea1dce
 slowOp = (a, b = 2; c = 3, d) -> begin
@@ -415,63 +430,75 @@ slowOp = (a, b = 2; c = 3, d) -> begin
 	a + b + c + d
 end # begin
 
-# ╔═╡ 1859fd1b-6bd8-4043-8ade-da8f58a8523f
-@btime slowOp(10, d=20)                # ~ 2 sec
-
 # ╔═╡ 8e30f35c-e0a0-4cb0-bbbe-ce078d61033e
 fastOp = memoizeMultipleArgs(slowOp)
 
-# ╔═╡ a67ef6d7-d8c3-4fac-af48-e553b25a623a
-@btime fastOp(10, d=20)                # ~ 78 nsec
-
 # ╔═╡ 14673fa7-294c-4c86-96e8-e6ae96680efe
-@btime fastOp(2, d=5)                  # ~ 78 nsec; Kwong's is 2.4 sec
+@btime fastOp(2, d=5)                  # ~ (67 - 78) nsec; Kwong's is 2.4 sec
 
 # ╔═╡ 7378973e-3d2b-4b32-a9f9-195593c81d4e
-@btime fastOp(2, d=5)                  # ~ 73 nsec; Kwong's is 0.000023 sec
+@btime fastOp(2, d=5)                  # ~ (67 - 78) nsec; Kwong's is 23000 nsec
 
 # ╔═╡ 33602290-b08f-4f9b-90a6-0746b03e6cf9
-@btime fastOp(1, c=4, d=5)             # ~ 107 nsec; Kwong's is 2.1 sec
+@btime fastOp(1, c=4, d=5)             # ~ (97 - 152) nsec; Kwong's is 21000 nsec
 
 # ╔═╡ 8b037765-79d4-41df-933c-4963db9ec503
-@btime fastOp(1, c=4, d=5)             # ~ 110 nsec; Kwong's is 0.000024 sec
+@btime fastOp(1, c=4, d=5)             # ~ (97 - 152) nsec; Kwong's is 21000 nsec
 
 # ╔═╡ 897fdd0d-43ff-4b6d-b786-81416104dede
 md"
 ---
 ###### 3.6 Mutable Data Types in the Arguments
-(Kwong, 2020, p.254f)
+(Kwong, 2020, p.254-257)
 "
 
 # ╔═╡ 20546bbc-c2a2-4034-b7e4-45367101f6b4
-slowSumAbs = (x::AbstractVector{T} where {T <: Real}) -> begin
+sumSlowAbs = (xs::AbstractVector{T} where {T <: Real}) -> begin
 	sleep(2)
-	sum(abs(v) for v in x)
+	sum(abs(x) for x in xs)
 end # begin
 
 # ╔═╡ e2e50b88-f31e-45b3-b146-744e68dd8716
-x = [1, -2, 3, -4, 5]
+xs2 = [1, -2,  3, -4,  5]                  # 1 + 2 + 3 + 4 + 5 = 15
+
+# ╔═╡ 6a6a5f7f-8683-4f9c-8d3f-8ebc0ce299b9
+xs2 |> x -> abs.(x) |> sum                 # ==> 15 -->  :)
+
+# ╔═╡ 8eda3fde-54b7-40d3-b285-e4fe76b52cfe
+@btime sumSlowAbs(xs2)                     #  ~ 2 sec
 
 # ╔═╡ 30f4abd7-d187-4277-a7e5-19aaae957caa
-sumAbs = memoizeMultipleArgs(slowSumAbs)
+sumFastAbs = memoizeMultipleArgs(sumSlowAbs)
 
 # ╔═╡ 0f7abba3-336a-4742-95f7-cb8782651ed5
-@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 2.2 sec
+@btime sumFastAbs(xs2)                     # ~ (55 - 190) nsec; Kwong's is 22000 nsec
 
 # ╔═╡ 0d1475bb-b700-44ec-a534-c0f431678d53
-@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+@btime sumFastAbs(xs2)                     # ~ (55 - 190) nsec; Kwong's is 8000 nsec
 
 # ╔═╡ d5a1ecd7-a583-462b-b678-1fda936a2fd9
-push!(x, -6)
+push!(xs2, -6)                             # 1 + 2 + 3 + 4 + 5 + 6 = 21
+
+# ╔═╡ 362f12ac-8c42-48e8-a21f-dee43c53dc88
+xs2
+
+# ╔═╡ d24457c7-39fb-4d53-a08e-dbcf2fb2180d
+xs2 |> x -> abs.(x) |> sum                 # ==> 21 -->  :)
 
 # ╔═╡ e8cbe3d5-7f07-4e62-835c-a847de34c772
-@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+@btime sumFastAbs(xs2)                     # ~ (55 - 190) nsec; Kwong's is 8000 nsec
 
 # ╔═╡ b06b3cd5-998a-449d-b8f9-b6174b6dd897
-push!(x, 7)
+push!(xs2, 7)                              # 1 + 2 + 3 + 4 + 5 + 6 + 7 = 28
+
+# ╔═╡ 78013299-bece-4894-8988-d3eca308b8c5
+xs2
+
+# ╔═╡ 31656efc-07a6-4692-b818-b5c223792c5e
+xs2 |> x -> abs.(x) |> sum
 
 # ╔═╡ 3622dd53-579e-4a68-b868-bff8443096f6
-@btime sumAbs(x)              # ~ 55 nsec; Kwong's is 8000 nsec
+@btime sumFastAbs(xs2)                     # ~ (55 - 110) nsec; Kwong's is 2 sec
 
 # ╔═╡ 735138f0-424a-4c74-b274-4499e31c85a1
 rand(UInt64)
@@ -480,7 +507,8 @@ rand(UInt64)
 function memoizeMultipleArgsHash(foo)
 	#-----------------------------------------------------------------------------
 	function hashAllArgs(args, kwargs)
-		h = rand(UInt64)
+		# h =  rand(UInt64)
+		h =  0xed98007bd4471dc2               # Kwong, 2020, p.256
 		h += hash(args, h)
 		h += hash(kwargs, h)
 		h
@@ -490,11 +518,11 @@ function memoizeMultipleArgsHash(foo)
 	#-----------------------------------------------------------------------------
 	(args...; kwargs...) -> begin                                  # closure
 		key = hashAllArgs(args, kwargs)
-		if 	haskey(cache, x)                # cache is nonlocal in closure   
-			cache[x]  
+		if 	haskey(cache, key)                # cache is nonlocal in closure   
+			cache[key]  
 		else
-			value = foo(args...; kwargs...) # foo is nonlocal in closure 
-			cache[x] = value
+			value = foo(args...; kwargs...)   # foo is nonlocal in closure 
+			cache[key] = value
 			value   
 		end # if
 	end # begin
@@ -502,30 +530,34 @@ function memoizeMultipleArgsHash(foo)
 end # function memoizeMultipleArgsHash
 
 # ╔═╡ cf775dcc-b3a3-4ae4-8608-348df7973908
-sumAbsHash = memoizeMultipleArgsHash(sumAbs)
+sumAbsHash = memoizeMultipleArgsHash(sumSlowAbs)
 
 # ╔═╡ 440a29ef-f4ad-4d35-a05e-c800e5b44f21
-x5 = [1, -2, 3, -4, 5]
+xs4 = [1, -2, 3, -4, 5]
+
+# ╔═╡ d34c2b5f-ca7b-40c3-a297-4af927298242
+xs4 |> x -> abs.(x) |> sum                      # ==>  15 -->  :)
 
 # ╔═╡ 2424631b-a4e3-4a1e-b736-01284b8eca66
-@btime sumAbsHash(x5)
+@btime sumAbsHash(xs4)                          # ~ 2 sec
 
 # ╔═╡ 8adf9648-7a3b-4d85-a8d5-70623aacfccc
-@btime sumAbsHash(x5)
+@btime sumAbsHash(xs4)                          # ~ 2 sec
 
 # ╔═╡ 471ff02c-adf7-42a5-96f5-5bab0c771df7
 for i in 6:10
-	push!(x5, i * (iseven(i) ? -1 : 1))
-	ts = @elapsed val = sumAbsHash(x5)
-	println(i, ": ", x5, " -> ", val, " ( ", round(ts, digits=1), "s)")
-	ts = @elapsed val = sumAbsHash(x5)
-	println(i, ": ", x5, " -> ", val, " ( ", round(ts, digits=1), "s)")
+	push!(xs4, i * (iseven(i) ? -1 : 1))
+	ts = @elapsed val = sumAbsHash(xs4)
+	println(i, ": ", xs4, " -> ", val, " ( ", round(ts, digits=1), "s)")
+	ts = @elapsed val = sumAbsHash(xs4)
+	println(i, ": ", xs4, " -> ", val, " ( ", round(ts, digits=1), "s)")
 end # for
 
 # ╔═╡ 2f3ad781-b1ec-4980-8a1d-41578d9ab5c9
 md"
 ---
 ##### 4. Summary
+Great success ! We could replicate Kwong's results.
 "
 
 # ╔═╡ b5e6c048-a54e-454c-859e-22f5d5539cf0
@@ -552,21 +584,19 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
-TraceFuns = "626f57eb-f6ca-464c-8f04-384fee2a352e"
 
 [compat]
 BenchmarkTools = "~1.6.0"
 Pluto = "~0.20.16"
-TraceFuns = "~0.2.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.6"
+julia_version = "1.11.7"
 manifest_format = "2.0"
-project_hash = "e68e406fb9eda49b0b9e8dd71d753ef0cf161b3d"
+project_hash = "973689022f674754d792752b80f5822e88456a93"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -590,11 +620,6 @@ version = "1.6.0"
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.9"
-
-[[deps.Cassette]]
-git-tree-sha1 = "f8764df8d9d2aec2812f009a1ac39e46c33354b8"
-uuid = "7057c7e9-c182-5462-911a-8362d720325c"
-version = "0.3.14"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -980,12 +1005,6 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
-[[deps.TraceFuns]]
-deps = ["Cassette"]
-git-tree-sha1 = "d8e026e2d98f790d64ef05854603d57b0d4cb9df"
-uuid = "626f57eb-f6ca-464c-8f04-384fee2a352e"
-version = "0.2.0"
-
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
@@ -1074,6 +1093,10 @@ version = "17.4.0+2"
 # ╠═b17ee736-b45c-462e-a290-ea675517066c
 # ╠═a76bfca3-7d26-4792-af86-494b43bf0bff
 # ╠═bab903df-0686-4134-b7fb-299622393f6c
+# ╠═2da8d149-d08b-466f-81a6-60c6297f5a3c
+# ╠═a5c0e0f9-f508-44a7-9bd6-c0cfb481200f
+# ╠═45f79e48-edc6-4208-816c-76be9d928e03
+# ╠═c1e307ea-5b81-4a8e-a328-729d7500ad70
 # ╠═3a113fb9-1ce0-46d8-9ff8-ca780cfd2cbd
 # ╠═01c903f6-0f90-42cd-9d7a-1d9263ebb565
 # ╠═47b62a5b-957e-44af-9ac7-a45368eea655
@@ -1098,12 +1121,11 @@ version = "17.4.0+2"
 # ╠═89327b48-730e-4fab-aa38-14eac97c7ff9
 # ╠═f2fcf32a-8729-4777-b842-e35ddd9f24eb
 # ╠═b7aff350-5c93-4213-94b5-3c2673922583
+# ╠═f437d04b-d646-4ed6-8863-4f5e137575c1
 # ╠═b664cd9f-79d6-448e-b3f3-41f83c7b25c7
 # ╠═094f836e-2cbf-415f-9ab5-cb633763b235
 # ╠═760afd47-d1f7-4ca7-91bb-a07074ea1dce
-# ╠═1859fd1b-6bd8-4043-8ade-da8f58a8523f
 # ╠═8e30f35c-e0a0-4cb0-bbbe-ce078d61033e
-# ╠═a67ef6d7-d8c3-4fac-af48-e553b25a623a
 # ╠═14673fa7-294c-4c86-96e8-e6ae96680efe
 # ╠═7378973e-3d2b-4b32-a9f9-195593c81d4e
 # ╠═33602290-b08f-4f9b-90a6-0746b03e6cf9
@@ -1111,17 +1133,24 @@ version = "17.4.0+2"
 # ╟─897fdd0d-43ff-4b6d-b786-81416104dede
 # ╠═20546bbc-c2a2-4034-b7e4-45367101f6b4
 # ╠═e2e50b88-f31e-45b3-b146-744e68dd8716
+# ╠═6a6a5f7f-8683-4f9c-8d3f-8ebc0ce299b9
+# ╠═8eda3fde-54b7-40d3-b285-e4fe76b52cfe
 # ╠═30f4abd7-d187-4277-a7e5-19aaae957caa
 # ╠═0f7abba3-336a-4742-95f7-cb8782651ed5
 # ╠═0d1475bb-b700-44ec-a534-c0f431678d53
 # ╠═d5a1ecd7-a583-462b-b678-1fda936a2fd9
+# ╠═362f12ac-8c42-48e8-a21f-dee43c53dc88
+# ╠═d24457c7-39fb-4d53-a08e-dbcf2fb2180d
 # ╠═e8cbe3d5-7f07-4e62-835c-a847de34c772
 # ╠═b06b3cd5-998a-449d-b8f9-b6174b6dd897
+# ╠═78013299-bece-4894-8988-d3eca308b8c5
+# ╠═31656efc-07a6-4692-b818-b5c223792c5e
 # ╠═3622dd53-579e-4a68-b868-bff8443096f6
 # ╠═735138f0-424a-4c74-b274-4499e31c85a1
 # ╠═221c48b7-aca6-4412-bec3-4082ae3855fd
 # ╠═cf775dcc-b3a3-4ae4-8608-348df7973908
 # ╠═440a29ef-f4ad-4d35-a05e-c800e5b44f21
+# ╠═d34c2b5f-ca7b-40c3-a297-4af927298242
 # ╠═2424631b-a4e3-4a1e-b736-01284b8eca66
 # ╠═8adf9648-7a3b-4d85-a8d5-70623aacfccc
 # ╠═471ff02c-adf7-42a5-96f5-5bab0c771df7
