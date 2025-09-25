@@ -21,7 +21,7 @@ md"
 ====================================================================================
 #### DP&BP\_Ch06\_04\_Memoization Pattern\_II
 ##### file: DP&BP\_Ch06\_04\_MemoizationPattern\_II
-##### code: Julia/Pluto (1.11.7/0.20.18) by PCM *** 2025/09/24 ***
+##### code: Julia/Pluto (1.11.7/0.20.18) by PCM *** 2025/09/25 ***
 
 ===================================================================================
 "
@@ -33,7 +33,9 @@ md"
 
 Memoization allows us to increase the calculation speed if intermediate results can be retrieved from memory instead of calculating them a second time.
 
-In the memoization used here, intermediate function values are stored in a Julian dictionary. As a paradigmatic example, we demonstrate this effect with the tree-recursive Fibonacci function. Where necessary, we deviate from Kwong's code.
+In the memoization used here, intermediate function values are stored in a *hidden,  opaque* way.  This is controlled by calling the $@memoize$ *macro* of the $Memoize$ library. 
+
+As a paradigmatic example, we demonstrate the *speed-up* effect with the tree-recursive Fibonacci function. Where necessary, we deviate from Kwong's code.
 "
 
 # ╔═╡ 3ab98f4e-87ad-4a62-b894-87fdb96344bf
@@ -80,10 +82,10 @@ md"
 @memoize fib2(n) = n ≤ 2 ? 1 : fib2(n-1) + fib2(n-2)
 
 # ╔═╡ 81c3cead-7b79-4595-89a6-23f6eebf3243
-@btime fib2(40)                                       # ~ (12 - 19) nsec
+@btime fib2(40)                                       # ~ (12 - 35) nsec
 
 # ╔═╡ baef3e39-e580-47ff-8153-7186c8d27506
-@btime fib2(40)                                       # ~ (12 - 19) nsec
+@btime fib2(40)                                       # ~ (12 - 24) nsec
 
 # ╔═╡ 4d77ecab-55fb-4b02-97b2-cf3b9bda1350
 @btime fib2(39)                                       # ~ (12 - 19) nsec
